@@ -1,0 +1,19 @@
+[package]
+name = "Runde2"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name="aufgabe3"
+path="./proto/Aufgabe3/main.rs"
+
+[[bin]]
+name="aufgabe4"
+path="./proto/Aufgabe4/main.rs"
+
+[dependencies]
+serde_json = "1.0"
+rand = "0.8.4"
+bit-vec = "0.6"
