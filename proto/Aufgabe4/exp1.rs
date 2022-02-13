@@ -1,42 +1,119 @@
 #![allow(dead_code)]
-use std::{collections::{HashMap}, mem::swap};
-use std::cell::Cell;
-use rand::Rng;
+use std::{collections::{HashMap}};
 use bit_vec::BitVec;
-//use primitive_types::U256;
-use std::time::Instant;
 
 use super::common::*;
+use super::ISolver;
 
-struct Solver {
-    t_input: Option<TInput>,
-    pascal: Vec<Vec<u128>>,
-    binom_sum: Vec<Vec<u128>>,
-    cost_dp: Vec<Vec<Cell<u128>>>,
+//[lo;hi)
+
+pub struct Solver<'a> {
+    t_input: Option<&'a TInput>,
+    nums: Vec<u128>,
+    pascal: DParray<u128>,
+    binom_sum: DParray<u128>,
+    cost_dp: DParray<u128>,
+    cost_dp_params: Option<(usize, bool)>,
 }
 
-impl Solver {
-    fn new() -> Solver {
+impl<'a> ISolver<'a> for Solver<'a> {
+    fn new() -> Solver<'a> {
         let mut solver = Solver { 
             t_input: None,
-            pascal: vec![vec![0;MAXK+2];MAXN+2], //TODO: Optimize space
-            binom_sum: vec![vec![0;MAXK+2];MAXN+2],
-            cost_dp: vec![vec![Cell::new(0);MAXK+2];MAXN+2],
+            nums: vec![],
+            pascal: DParray::new(0, MAXN, MAXK, 1),
+            binom_sum: DParray::new(0, MAXN, MAXK, 1),
+            cost_dp: DParray::new(0, MAXN, MAXN+1, MAXK),
+            cost_dp_params: None,
         };
         solver.init();
         solver
     }
+    fn process(&mut self, t_input: &'a TInput) -> Option<TOutput> {
+        self.t_input = Some(t_input);
+        self.nums = self.t_input.unwrap().nums.clone();
+        self.nums.sort();
+        let mut context = ExternalStorage {comb_set: HashMap::with_capacity(1e7 as usize)};
+        let n = self.t_input.unwrap().n as usize;
+        let k = (self.t_input.unwrap().k+1) as usize;
+        self.estimate_cost(0, n, k, 1e7 as usize, true);
+        let res = self.explore(&mut context, 0, n, k, 0, true);
+        if let Some(c) = res {
+            println!("Found!");
+            println!("{}", c.0);
+            let mut v: Vec<u128> = vec![];
+            for i in 0..n {
+                if c.1.get(i).unwrap() {
+                    v.push(self.nums[i]);
+                    println!("{}", self.nums[i]);
+                }
+            }
+            println!("{}", v.len());
+            let output = TOutput {nums: v};
+            println!("{}", output.verify());
+            Some(output)
+        }
+        else {
+            println!("Not found!");
+            None
+        }
+        
+    }
+}
+
+fn msb(num: u128) -> u128 {
+    let mut num = num;
+    for e in 0..7 {
+        num |= num >> (1 << e);
+    }
+    (num >> 1) + 1
+}
+
+fn get_partition(nums: &Vec<u128>, lo: usize, hi: usize) -> ((usize, usize), (usize, usize), u128) { 
+    let n = hi-lo;
+    if false {
+        let sl = (n as f64/2.0).ceil() as usize;
+        let sr = (n as f64/2.0).floor() as usize;
+    ((lo, lo+sl), (lo+sl, hi), 0)
+    }
+    else {
+        let a = msb(nums[lo]);
+        let b = msb(nums[hi-1]);
+        let mut up = b;
+        let pl: (usize, usize);
+        let pr: (usize, usize);
+        let mut isdif = 0;
+        loop {
+            if (a & up) == 0 && (b & up ) != 0 {
+                let mid = nums.partition_point(|x| {x < &up});
+                pl = (lo, mid);
+                pr = (mid, hi);
+                isdif = up;
+                break;
+            }
+            if up==1 {
+                pl = (lo, lo+(n as f64/2.0).ceil() as usize);
+                pr = (lo+(n as f64/2.0).ceil() as usize, hi);
+                break;
+            }
+            up = up >> 1;
+        }
+        (pl, pr, isdif)
+    }
+}
+
+impl<'a> Solver<'a> {
     /// Initializes solver 
     fn init(&mut self) {
         //Calculate pascal triangle
-        self.pascal[0][0] = 1;
+        *self.pascal.get2_mut(0, 0) = 1;
         for n in 1..MAXN+1 {
-            self.pascal[n][0] = 1;
+            *self.pascal.get2_mut(n, 0) = 1;
             if n <= MAXK {
-                self.pascal[n][n] = 1;
+                *self.pascal.get2_mut(0, 0) = 1;
             }
             for k in 1..n.min(MAXK)+1 {
-                self.pascal[n][k] = self.pascal[n-1][k]+self.pascal[n-1][k-1];
+                *self.pascal.get2_mut(n, k) = self.pascal.get2(n-1, k)+self.pascal.get2(n-1, k-1);
             }
         }
         //Calculate enum_cost
@@ -46,56 +123,86 @@ impl Solver {
                 for i in 0..k+1 {
                     res += self.binom(n, i);
                 }
-                self.binom_sum[n][k] = res;
+                *self.binom_sum.get2_mut(n, k) = res;
             }
         }
+        //
     }
     /// Binomial coefficient \ 
     /// n <= MAXN and k <= MAXK 
     fn binom(&self, n: usize, k: usize) -> u128 {
         assert!(n <= MAXN && k <= MAXK);
-        self.pascal[n][k]
+        self.pascal.get2(n, k)
     }
     fn space_cost(&self, n: usize, k: usize) -> u128 {
         self.binom(n, k)
     }
     fn enum_cost(&self, n: usize, k: usize) -> u128 {
         assert!(n <= MAXN && k <= MAXK);
-        self.binom_sum[n][k]
+        self.binom_sum.get2(n, k)
     }
-    fn estimate_cost(&self, n: usize, k: usize, space_limit: usize, recursive: bool) -> u128 {
+    pub fn estimate_cost(&mut self, lo: usize, hi: usize, k: usize, space_limit: usize, recursive: bool) -> u128 {
+        assert!(lo < hi);
+        self.cost_dp_params = Some((space_limit, recursive));
+        let n = hi-lo;
+        let nums = &self.nums;
+        assert!(n <= MAXN && k <= MAXK);
         if n == 1 {
             return 1;
         }
-        if self.cost_dp[n][k].get() != 0 {
-            return self.cost_dp[n][k].get();
+        if self.cost_dp.get3(lo, hi, k) != 0 {
+            return self.cost_dp.get3(lo, hi, k);
         }
         let mut res: u128 = 1;
-        let sl = (n as f64/2.0).ceil() as usize;
-        let sr = (n as f64/2.0).floor() as usize;
+        let (pl, pr, _) = get_partition(nums, lo, hi);
+        let sl = pl.1-pl.0;let sr = pr.1-pr.0;
         for l in (if k >= sr {k-sr} else {0})..sl.min(k)+1 {
             let r = k-l;
-            let pairs = vec![(sl, l), (sr, r)];
-            res += self.best_action(&pairs, space_limit, recursive).0;
+            let pairs = vec![(pl, l), (pr, r)];
+            res += (self.calculate_best_action(&pairs, space_limit, recursive).0 as f64/2.0).ceil() as u128;
         }
-        self.cost_dp[n][k].set(res);
+        *self.cost_dp.get3_mut(lo, hi, k) = res;
         res
     }
-    fn best_action(&self, pairs: &Vec<(usize, usize)>, space_limit: usize, recursive: bool) -> (u128, usize, usize) {
+    fn estimated_cost(&self, lo: usize, hi: usize, k: usize) -> u128 {
+        assert!(!self.cost_dp_params.is_none());
+        self.cost_dp.get3(lo, hi, k)
+    }
+    fn calculate_best_action(&mut self, pairs: &Vec<((usize, usize), usize)>, space_limit: usize, recursive: bool) -> (u128, usize, usize) {
         let mut mres = (u128::MAX, 0, 0);
         for i in 0..2 {
             let it_p = pairs[i];
             let alt_p = pairs[1-i];
-            let it_tcost = self.enum_cost(it_p.0, it_p.1);
-            //
-            let alt_tcost = self.enum_cost(alt_p.0, alt_p.1);
-            let alt_scost = self.space_cost(alt_p.0, alt_p.1);
+            let itl = it_p.0.1 - it_p.0.0;
+            let altl = alt_p.0.1 - alt_p.0.0;
+            let it_tcost = self.enum_cost(itl, it_p.1);
+            let alt_tcost = self.enum_cost(altl, alt_p.1);
+            let alt_scost = self.space_cost(altl, alt_p.1);
             if alt_scost <= space_limit as u128 {
                 mres = mres.min((it_tcost+alt_tcost, i, 0));
             }
-            //
             if recursive {
-                mres = mres.min((it_tcost*self.estimate_cost(alt_p.0, alt_p.1, space_limit, recursive), i, 1));
+                mres = mres.min((it_tcost*self.estimate_cost(alt_p.0.0, alt_p.0.1, alt_p.1, space_limit, recursive), i, 1));
+            }
+            //mres = mres.min((it_tcost*alt_tcost, i, 2));
+        }
+        mres
+    }
+    fn best_action(&self, pairs: &Vec<((usize, usize), usize)>, space_limit: usize, recursive: bool) -> (u128, usize, usize) {
+        let mut mres = (u128::MAX, 0, 0);
+        for i in 0..2 {
+            let it_p = pairs[i];
+            let alt_p = pairs[1-i];
+            let itl = it_p.0.1 - it_p.0.0;
+            let altl = alt_p.0.1 - alt_p.0.0;
+            let it_tcost = self.enum_cost(itl, it_p.1);
+            let alt_tcost = self.enum_cost(altl, alt_p.1);
+            let alt_scost = self.space_cost(altl, alt_p.1);
+            if alt_scost <= space_limit as u128 {
+                mres = mres.min((it_tcost+alt_tcost, i, 0));
+            }
+            if recursive {
+                mres = mres.min((it_tcost*self.estimated_cost(alt_p.0.0, alt_p.0.1, alt_p.1), i, 1));
             }
             //mres = mres.min((it_tcost*alt_tcost, i, 2));
         }
@@ -103,13 +210,12 @@ impl Solver {
     }
 }
 
-struct Context {
+struct ExternalStorage {
     comb_set: HashMap<u128, BitVec>,
 }
 
 #[derive(Debug, Clone)]
 struct Combined(u128, BitVec);
-
 impl Combined {
     fn new() -> Self{
         Combined(0, BitVec::from_elem(MAXN+1, false))
@@ -138,47 +244,72 @@ fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combined) -> (), sta
     }
 }
 
-impl Solver {
-    fn explore(&self, context: &mut Context, lo: usize, hi: usize, k: usize, target: u128, recursive: bool) -> Option<Combined> {
-        let nums = &self.t_input.as_ref().unwrap().nums;
+fn get_xor(nums: &[u128], b: &BitVec) -> u128{
+    let mut d = 0;
+    for i in 0..nums.len() {
+        if b.get(i).unwrap() {
+            d ^= nums[i];
+        }
+    }
+    d
+}
+
+impl<'a> Solver<'a> {
+    fn explore(&self, context: &mut ExternalStorage, lo: usize, hi: usize, k: usize, target: u128, recursive: bool) -> Option<Combined> {
+        let nums = &self.nums;
         let space_limit = context.comb_set.capacity();
-        let n = hi-lo+1;
-        let sl = (n as f64/2.0).ceil() as usize;
-        let sr = (n as f64/2.0).floor() as usize;
         let mut res: Option<Combined> = None;
-        for l in (if k >= sr {k-sr} else {0})..sl.min(k)+1 {
+        let (pl, pr, is_dif) = get_partition(nums, lo, hi);
+        let sl = pl.1-pl.0;let sr = pr.1-pr.0;
+        /*if hi-lo == 1 {
+            if nums[lo] == target {
+                let mut c = Combined::new();
+                c.0 = nums[lo];
+                c.1.set(lo, true);
+                return Some(c);
+            }
+            else {
+                return None;
+            }
+        }*/
+        let minl = if k >= sr {k-sr} else {0};
+        let maxl = sl.min(k)+1;
+        let k_range = if is_dif>0 {
+            ((minl+(((is_dif & target)>0)as usize+k)%2)..maxl).step_by(2)
+        }else {
+            (minl..maxl).step_by(1)
+        };
+        for l in k_range {
             let r = k-l;
-            let mut pairs = vec![(sl, l), (sr, r)];
+            let mut pairs = vec![(pl, l), (pr, r)];
             let action = self.best_action(&pairs, space_limit, recursive);
-            let (mut it_start, mut alt_start) = (lo, lo+sl);
-            if action.1 > 0 {pairs.swap(0, 1);swap(&mut it_start, &mut alt_start)}
+            if action.1 > 0 {
+                pairs.swap(0, 1);
+            }
+            let (it_p, it_k) = pairs[0];
+            let (alt_p, alt_k) = pairs[1];
             match action.2 {
                 0 => {
                     context.comb_set.clear();
-                    if alt_start+pairs[1].0 > hi+1 {
-                        println!("{} {} {} {}", &lo, &hi, &sl, &sr);
-                        println!("{} {:?}", &alt_start, pairs);
-                        let a = 1;
-                    }
-                    enum_combs(nums, pairs[1].1, &mut |x| {context.comb_set.insert(x.0, x.1);}, alt_start, alt_start+pairs[1].0, Combined::new());
+                    enum_combs(nums, alt_k, &mut |x| {context.comb_set.insert(x.0, x.1);}, alt_p.0, alt_p.1, Combined::new());
                     let mut it_func = |x: Combined| {
                         let compl = x.0 ^ target;
                         match context.comb_set.get(&compl) {
-                            Some(c) => res = Some(x.combine(&Combined(compl, c.clone()))),
+                            Some(c) => {res = Some(x.combine(&Combined(compl, c.clone())))},
                             None => ()
                         }
                     };
-                    enum_combs(nums, pairs[0].1, &mut it_func, it_start, it_start+pairs[0].0, Combined::new());
+                    enum_combs(nums, it_k, &mut it_func, it_p.0, it_p.1, Combined::new());
                 }
                 1 => {
                     let mut it_func = |x: Combined| {
                         let compl = x.0 ^ target;
-                        match self.explore(context, alt_start, alt_start+pairs[1].0-1, pairs[1].1, compl, recursive) {
+                        match self.explore(context, alt_p.0, alt_p.1, alt_k, compl, recursive) {
                             Some(c) => res = Some(x.combine(&c)),
                             None => ()
                         }
                     };
-                    enum_combs(nums, pairs[0].1, &mut it_func, it_start, it_start+pairs[0].0, Combined::new());
+                    enum_combs(nums, it_k, &mut it_func, it_p.0, it_p.1, Combined::new());
                 }
                 _ => {
                     unimplemented!()
@@ -190,61 +321,25 @@ impl Solver {
         }
         return None;
     }
-    fn process(&mut self, t_input: TInput) {
-        self.t_input = Some(t_input);
-        let mut context = Context {comb_set: HashMap::with_capacity(1e7 as usize)};
-        let n = self.t_input.as_ref().unwrap().n as usize;
-        let k = (self.t_input.as_ref().unwrap().k+1) as usize;
-        let res = self.explore(&mut context, 0, n-1, k, 0, true);
-        if let Some(c) = res {
-            println!("Found!");
-            println!("{}", c.0);
-            let mut v: Vec<u128> = vec![];
-            for i in 0..n {
-                if c.1.get(i).unwrap() {
-                    v.push(self.t_input.as_ref().unwrap().nums[i]);
-                    println!("{}", self.t_input.as_ref().unwrap().nums[i]);
-                }
-            }
-            println!("{}", v.len());
-            let tOutput = TOutput {nums: v};
-            println!("{}", tOutput.verify());
-        }
-        else {
-            println!("Not found!");
-        }
-        
-    }
-}
-
-fn main() {
-    let tInput = TInput::read_from("eingaben/BonusAufgabe/stapel2.txt").unwrap();
-    let mut solver = Solver::new();
-    /*let n = tInput.n as usize;
-    let k = (tInput.k+1) as usize;
-    solver.t_input = Some(tInput);
-    let mut context = Context {comb_set: HashMap::with_capacity(1e8 as usize)};
-    let res = solver.explore(&mut context, 0, n-1, k, 0, false);
-    //enum_combs(&vec![17, 2, 3], 3, &mut |x| {println!("{}", x)}, 0, 0);*/
-    let now = Instant::now();
-    solver.process(tInput);
-    let elapsed_time = now.elapsed();
-    println!("Running slow_function() took {} seconds.", elapsed_time.as_secs());
+    
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use rand::Rng;
 
     #[test]
     fn basic() {
-        let solver = Solver::new();
+        let mut solver = Solver::new();
+        solver.nums = vec![0;110];
         assert_eq!(solver.binom(8, 4), 70);
         assert_eq!(solver.binom(76, 13), 152724276564800);
         assert_eq!(solver.enum_cost(55, 12), 595443690122);
         assert_eq!(solver.enum_cost(35, 4), 59536);
-        assert_eq!(solver.estimate_cost(111, 11, 1e8 as usize, true), 22856129090);
-        assert_eq!(solver.estimate_cost(69, 16, 1e8 as usize, true), 11565982879);
+        solver.estimate_cost(0, 110, 11, 1e8 as usize, true);
+        assert_eq!(solver.estimated_cost(0, 110, 11), 6161574467);
+        //assert_eq!(solver.estimated_cost(0, 68, 16), 11565982879);
     }
     #[test]
     fn test_enum_combs() {
@@ -260,5 +355,10 @@ mod test {
             enum_combs(&v, k, &mut |x| {counter += 1;}, 0, si, Combined::new());
             assert_eq!(counter, solver.binom(si, k));
         }
+    }
+    #[test]
+    fn test_msb() {
+        assert_eq!(msb(3), 2);
+        assert_eq!(msb(5), 4);
     }
 }

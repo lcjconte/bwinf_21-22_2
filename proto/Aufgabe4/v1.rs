@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use super::common::*;
 
-struct Solver {
+pub struct Solver {
     t_input: Option<TInput>,
     pascal: Vec<Vec<u128>>,
     binom_sum: Vec<Vec<u128>>,
@@ -15,7 +15,7 @@ struct Solver {
 }
 
 impl Solver {
-    fn new() -> Solver {
+    pub fn new() -> Solver {
         let mut solver = Solver { 
             t_input: None,
             pascal: vec![vec![0;MAXK+2];MAXN+2], //TODO: Optimize space
@@ -150,7 +150,7 @@ impl Solver {
             let mut pairs = vec![(sl, l), (sr, r)];
             let action = self.best_action(&pairs, space_limit, recursive);
             let (mut it_start, mut alt_start) = (lo, lo+sl);
-            if action.1 > 0 {pairs.swap(0, 1);swap(&mut it_start, &mut alt_start)}
+            if action.1 > 0 {pairs.swap(0, 1);swap(&mut it_start, &mut alt_start)} //FIXME:Wrong assumes same size
             match action.2 {
                 0 => {
                     context.comb_set.clear();
@@ -189,7 +189,7 @@ impl Solver {
         }
         return None;
     }
-    fn process(&mut self, t_input: TInput) {
+    pub fn process(&mut self, t_input: TInput) {
         self.t_input = Some(t_input);
         let mut context = Context {comb_set: HashMap::with_capacity(1e7 as usize)};
         let n = self.t_input.as_ref().unwrap().n as usize;

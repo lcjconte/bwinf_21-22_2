@@ -1,3 +1,4 @@
+#[allow(non_snake_case)]
 use std::error::Error;
 use std::io::{self, BufRead};
 use std::fs::File;
@@ -7,6 +8,7 @@ pub const MAXN: usize = 181;
 pub const MAXK: usize = 20;
 pub const MAXM: usize = 128;
 
+#[derive(Clone)]
 pub struct TInput {
     pub n: i32,
     pub k: i32,
@@ -25,22 +27,22 @@ impl TInput {
         TInput {n: 0, k: 0, m: 0, nums: vec![]}
     }
     pub fn read_from(file_name: &str) -> Result<TInput, Box<dyn Error>> {
-        let mut tInput = TInput::new();
+        let mut input = TInput::new();
         for (idx, line) in read_lines(file_name)?.enumerate() {
             match idx {
                 0 => {
                     let parts: Vec<String> = line?.split(" ").map(|s| s.to_string()).collect();
-                    tInput.n = parts[0].trim().parse()?;
-                    tInput.k = parts[1].trim().parse()?;
-                    tInput.m = parts[2].trim().parse()?;
-                    tInput.nums.resize(tInput.n as usize, 0);
+                    input.n = parts[0].trim().parse()?;
+                    input.k = parts[1].trim().parse()?;
+                    input.m = parts[2].trim().parse()?;
+                    input.nums.resize(input.n as usize, 0);
                 },
                 _ => {
-                    tInput.nums[idx-1] = u128::from_str_radix(&line?, 2)?
+                    input.nums[idx-1] = u128::from_str_radix(&line?, 2)?
                 }
             }
         }
-        Ok(tInput)
+        Ok(input)
     }
 }
 
@@ -56,4 +58,33 @@ impl TOutput {
         }
         a == 0
     }
+}
+
+pub struct DParray<T: Copy>{
+    underlying: Vec<T>,
+    bounds: (usize, usize, usize),
+}
+
+impl<T: Copy> DParray<T> {
+    pub fn new(initial_value: T, x_max: usize, y_max: usize, z_max: usize) -> DParray<T> {
+        let vec = vec![initial_value; (x_max+1)*(y_max+1)*(z_max+1)];
+        DParray { underlying: vec, bounds: (x_max+1, y_max+1, z_max+1) }
+    }
+    pub fn get2_mut(&mut self, x: usize, y: usize) -> &mut T {
+        &mut self.underlying[y*self.bounds.0+x]
+    }
+    pub fn get2(&self, x: usize, y: usize) -> T {
+        self.underlying[y*self.bounds.0+x]
+    }
+    pub fn get3_mut(&mut self, x: usize, y: usize, z: usize) -> &mut T{
+        &mut self.underlying[z*self.bounds.1*self.bounds.0+y*self.bounds.0+x]
+    }
+    pub fn get3(&self, x: usize, y: usize, z: usize) -> T{
+        self.underlying[z*self.bounds.1*self.bounds.0+y*self.bounds.0+x]
+    }
+}
+
+pub enum Var<'a, T> {
+    Mut(&'a mut T),
+    Const(&'a T),
 }
