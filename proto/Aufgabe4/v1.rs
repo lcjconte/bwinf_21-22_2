@@ -94,7 +94,7 @@ impl Solver {
             }
             //
             if recursive {
-                mres = mres.min((it_tcost*self.estimate_cost(alt_p.0, alt_p.1, space_limit, recursive), i, 1));
+                mres = mres.min((3*it_tcost*self.estimate_cost(alt_p.0, alt_p.1, space_limit, recursive), i, 1));
             }
             //mres = mres.min((it_tcost*alt_tcost, i, 2));
         }

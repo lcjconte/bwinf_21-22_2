@@ -2,12 +2,13 @@
 mod common;
 mod v1;
 mod exp1;
+mod exp2;
 //use primitive_types::U256;
 use std::time::Instant;
 use std::env;
 
 use common::*;
-use exp1::Solver;
+use exp2::Solver;
 
 trait ISolver<'a> {
     fn new() -> Self;

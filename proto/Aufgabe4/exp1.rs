@@ -1,5 +1,6 @@
 #![allow(dead_code)]
-use std::{collections::{HashMap}};
+//use std::{collections::{HashMap}};
+use rustc_hash::FxHashMap;
 use bit_vec::BitVec;
 
 use super::common::*;
@@ -33,11 +34,12 @@ impl<'a> ISolver<'a> for Solver<'a> {
         self.t_input = Some(t_input);
         self.nums = self.t_input.unwrap().nums.clone();
         self.nums.sort();
-        let mut context = ExternalStorage {comb_set: HashMap::with_capacity(1e7 as usize)};
+        let mut context = ExternalStorage {comb_set: FxHashMap::default()};
+        context.comb_set.reserve(1e8 as usize);
         let n = self.t_input.unwrap().n as usize;
         let k = (self.t_input.unwrap().k+1) as usize;
-        self.estimate_cost(0, n, k, 1e7 as usize, true);
-        let res = self.explore(&mut context, 0, n, k, 0, true);
+        self.estimate_cost(0, n, k, 1e8 as usize, true);
+        let res = self.explore(&mut context, 0, n, k, 0, true, 0);
         if let Some(c) = res {
             println!("Found!");
             println!("{}", c.0);
@@ -182,7 +184,7 @@ impl<'a> Solver<'a> {
                 mres = mres.min((it_tcost+alt_tcost, i, 0));
             }
             if recursive {
-                mres = mres.min((it_tcost*self.estimate_cost(alt_p.0.0, alt_p.0.1, alt_p.1, space_limit, recursive), i, 1));
+                mres = mres.min((3*it_tcost*self.estimate_cost(alt_p.0.0, alt_p.0.1, alt_p.1, space_limit, recursive), i, 1));
             }
             //mres = mres.min((it_tcost*alt_tcost, i, 2));
         }
@@ -202,7 +204,7 @@ impl<'a> Solver<'a> {
                 mres = mres.min((it_tcost+alt_tcost, i, 0));
             }
             if recursive {
-                mres = mres.min((it_tcost*self.estimated_cost(alt_p.0.0, alt_p.0.1, alt_p.1), i, 1));
+                mres = mres.min((3*it_tcost*self.estimated_cost(alt_p.0.0, alt_p.0.1, alt_p.1), i, 1));
             }
             //mres = mres.min((it_tcost*alt_tcost, i, 2));
         }
@@ -211,7 +213,7 @@ impl<'a> Solver<'a> {
 }
 
 struct ExternalStorage {
-    comb_set: HashMap<u128, BitVec>,
+    comb_set: FxHashMap<u128, BitVec>,
 }
 
 #[derive(Debug, Clone)]
@@ -255,7 +257,7 @@ fn get_xor(nums: &[u128], b: &BitVec) -> u128{
 }
 
 impl<'a> Solver<'a> {
-    fn explore(&self, context: &mut ExternalStorage, lo: usize, hi: usize, k: usize, target: u128, recursive: bool) -> Option<Combined> {
+    fn explore(&self, context: &mut ExternalStorage, lo: usize, hi: usize, k: usize, target: u128, recursive: bool, depth: i64) -> Option<Combined> {
         let nums = &self.nums;
         let space_limit = context.comb_set.capacity();
         let mut res: Option<Combined> = None;
@@ -304,7 +306,7 @@ impl<'a> Solver<'a> {
                 1 => {
                     let mut it_func = |x: Combined| {
                         let compl = x.0 ^ target;
-                        match self.explore(context, alt_p.0, alt_p.1, alt_k, compl, recursive) {
+                        match self.explore(context, alt_p.0, alt_p.1, alt_k, compl, recursive, depth+1) {
                             Some(c) => res = Some(x.combine(&c)),
                             None => ()
                         }
@@ -316,9 +318,11 @@ impl<'a> Solver<'a> {
                 }
             }
             if let Some(c) = res {
+                //if depth < 3 {println!("{}", depth);}
                 return Some(c);
             } 
         }
+        //if depth < 3 {println!("{}", depth);}
         return None;
     }
     
