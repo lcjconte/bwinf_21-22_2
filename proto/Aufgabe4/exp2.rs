@@ -1,4 +1,10 @@
 #![allow(dead_code)]
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::mpsc::{channel, Sender};
+use std::thread::{self, JoinHandle};
+use std::time::SystemTime;
+
 use rustc_hash::FxHashMap;
 use bit_vec::BitVec;
 
@@ -33,11 +39,9 @@ impl<'a> ISolver<'a> for Solver<'a> {
         self.t_input = Some(t_input);
         self.nums = self.t_input.unwrap().nums.clone();
         //self.nums.sort();
-        let mut context = ExternalStorage {comb_set: FxHashMap::default()};
-        context.comb_set.reserve(1e7 as usize);
         let n = self.t_input.unwrap().n as usize;
         let k = (self.t_input.unwrap().k+1) as usize;
-        let res = self.explore(&mut context, k, 0);
+        let res = self.explore(3, 44*1e6 as usize, k, 0);
         if let Some(c) = res {
             println!("Found!");
             println!("{}", c.0);
@@ -102,30 +106,36 @@ impl<'a> Solver<'a> {
         self.binom_sum.get2(n, k)
     }
 }
-
-struct ExternalStorage {
-    comb_set: FxHashMap<u128, BitVec>,
+trait CombStore {
+    fn insert(a: u128, b: BitVec) -> ();
+    fn get(a: u128) -> BitVec;
+    fn clear() -> ();
 }
 
 #[derive(Debug, Clone)]
-struct Combined(u128, BitVec);
-impl Combined {
+struct ExternalStorage {
+    comb_set: HashMap<u128, BitVec>,
+}
+
+#[derive(Debug, Clone)]
+struct Combination(u128, BitVec);
+impl Combination {
     fn new() -> Self{
-        Combined(0, BitVec::from_elem(MAXN+1, false))
+        Combination(0, BitVec::from_elem(MAXN+1, false))
     }
-    fn add(&self, b: u128, idx: usize) -> Combined {
-        let mut c = Combined(self.0 ^ b, self.1.clone());
+    fn add(&self, b: u128, idx: usize) -> Combination {
+        let mut c = Combination(self.0 ^ b, self.1.clone());
         c.1.set(idx, true);
         c
     }
-    fn combine(&self, b: &Combined) -> Combined {
-        let mut c = Combined(self.0 ^ b.0, self.1.clone());
+    fn combine(&self, b: &Combination) -> Combination {
+        let mut c = Combination(self.0 ^ b.0, self.1.clone());
         c.1.or(&b.1);
         c
     }
 }
 
-fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combined) -> (), block: (usize, usize), shift: usize, cur: Combined) {
+fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination) -> (), block: (usize, usize), shift: usize, cur: Combination) {
     assert!(block.1 <= nums.len());
     let n = nums.len();
     if k == 0 {
@@ -152,43 +162,68 @@ fn worker_thread() {
 
 }
 
+type SearchRes = Option<Combination>;
+fn search_here(t_idx: usize, sender: Sender<(SearchRes, ExternalStorage)>, nums: Arc<Vec<u128>>, mut context: ExternalStorage, k: usize, shift: usize, target: u128) -> Option<Combination> {
+    //let nums = &self.nums;
+    let n = nums.len();
+    let mut res: Option<Combination> = None;
+    let sl = (n as f64/2.0).ceil() as usize;
+    let l = (k as f64/2.0).ceil() as usize;
+    let r = k-l;
+    let blocks = vec![(0, sl), (sl, n)];
+    let mut pairs = vec![(l, blocks[0]), (r, blocks[1])];
+    pairs.sort();
+    let (alt_k, alt_p) = pairs[0];
+    let (it_k, it_p) = pairs[1];
+    context.comb_set.clear();
+    enum_combs(&nums, alt_k, &mut |x| {context.comb_set.insert(x.0, x.1);}, alt_p, shift, Combination::new());
+    let mut it_func = |x: Combination| {
+        let compl = x.0 ^ target;
+        match context.comb_set.get(&compl) {
+            Some(c) => {res = Some(x.combine(&Combination(compl, c.clone())));},
+            None => ()
+        }
+    };
+    enum_combs(&nums, it_k, &mut it_func, it_p, shift, Combination::new());
+    sender.send((res.clone(), context)).unwrap();
+    res
+}
+
 impl<'a> Solver<'a> {
-    fn search_here(&self, context:  &mut ExternalStorage, k: usize, shift: usize, target: u128) -> Option<Combined> {
+    fn explore(&self, jobs: usize, size_limit: usize, k: usize, target: u128) -> Option<Combination> {
         let nums = &self.nums;
         let n = nums.len();
-        let mut res: Option<Combined> = None;
-        let sl = (n as f64/2.0).ceil() as usize;
-        let l = (k as f64/2.0).ceil() as usize;
-        let r = k-l;
-        let blocks = vec![(0, sl), (sl, n)];
-        let mut pairs = vec![(l, blocks[0]), (r, blocks[1])];
-        pairs.sort();
-        let (alt_k, alt_p) = pairs[0];
-        let (it_k, it_p) = pairs[1];
-        let space_limit = context.comb_set.capacity();
-        context.comb_set.clear();
-        enum_combs(nums, alt_k, &mut |x| {context.comb_set.insert(x.0, x.1);}, alt_p, shift, Combined::new());
-        let mut it_func = |x: Combined| {
-            let compl = x.0 ^ target;
-            match context.comb_set.get(&compl) {
-                Some(c) => {res = Some(x.combine(&Combined(compl, c.clone())));},
-                None => ()
-            }
-        };
-        enum_combs(nums, it_k, &mut it_func, it_p, shift, Combined::new());
-        res
-    }
-    fn explore(&self, context: &mut ExternalStorage, k: usize, target: u128) -> Option<Combined> {
-        let nums = &self.nums;
-        let n = nums.len();
+        let mut handles: Vec<JoinHandle<Option<Combination>>> = vec![];
+        let (sender, receiver) = channel();
+        let mut storage: Vec<ExternalStorage> = vec![ExternalStorage {comb_set: HashMap::with_capacity(size_limit)};jobs];
+        let anums = Arc::new(nums.clone());
+        let mut res: SearchRes = None;
         for s_point in 0..n {
             println!("{}", &s_point);
-            let mres = self.search_here(context, k, s_point, target);
-            if let Some(c) = mres {
-                return Some(c);
-            } 
+            let st: ExternalStorage;
+            if storage.is_empty() {
+                let t_idx: usize;
+                let mres: (Option<Combination>, ExternalStorage) = receiver.recv().unwrap();
+                st = mres.1;
+                if let Some(c) = mres.0 {
+                    res = Some(c.clone());
+                    break;
+                }
+            }
+            else {
+                st = storage.pop().unwrap();
+            }
+            let aanums = anums.clone();let hlen = handles.len();let msender = sender.clone();
+            let nthread = thread::spawn(move || {
+                search_here(hlen, msender, aanums, st, k, s_point, target)
+            });
+            handles.push(nthread);
         }
-        return None;
+        while !handles.is_empty() {
+            let h = handles.pop().unwrap();
+            h.join().unwrap();
+        }
+        return res;
     }
     
 }

@@ -16,16 +16,10 @@ trait ISolver<'a> {
 }
 
 fn main() {
-    //let filepath = env::args().nth(1).unwrap();
-    let b = "eingaben/BonusAufgabe/stapel2.txt";
-    let input = TInput::read_from(b).unwrap();
+    let filepath = env::args().nth(1).unwrap();
+    //let b = "eingaben/BonusAufgabe/stapel2.txt";
+    let input = TInput::read_from(&filepath).unwrap();
     let mut solver = Solver::new();
-    /*let n = tInput.n as usize;
-    let k = (tInput.k+1) as usize;
-    solver.t_input = Some(tInput);
-    let mut context = Context {comb_set: HashMap::with_capacity(1e8 as usize)};
-    let res = solver.explore(&mut context, 0, n-1, k, 0, false);
-    //enum_combs(&vec![17, 2, 3], 3, &mut |x| {println!("{}", x)}, 0, 0);*/
     let now = Instant::now();
     solver.process(&input);
     let elapsed_time = now.elapsed();

@@ -4,7 +4,7 @@ use std::io::{self, BufRead};
 use std::fs::File;
 use std::path::Path;
 
-pub const MAXN: usize = 200;
+pub const MAXN: usize = 192;
 pub const MAXK: usize = 20;
 pub const MAXM: usize = 128;
 
