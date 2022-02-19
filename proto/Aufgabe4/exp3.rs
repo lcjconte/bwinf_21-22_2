@@ -1,12 +1,10 @@
 #![allow(dead_code)]
-use std::collections::{HashMap, BTreeMap};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 use std::thread::{self, JoinHandle};
 use std::time::SystemTime;
 use ahash::{RandomState, AHasher};
-
-use bit_vec::BitVec;
 
 use super::common::*;
 use super::ISolver;
@@ -41,7 +39,7 @@ impl<'a> ISolver<'a> for Solver<'a> {
         //self.nums.sort();
         let n = self.t_input.unwrap().n as usize;
         let k = (self.t_input.unwrap().k+1) as usize;
-        let res = self.explore(3, 1e7 as usize, k, 0);
+        let res = self.explore(3, self.binom(n, k) as usize, k, 0);
         if let Some(c) = res {
             println!("Found!");
             println!("{}", c.0);
@@ -132,20 +130,36 @@ impl CombStore for HashMapStore {
     }
 }
 
-#[derive(Clone)]
-struct BTStore(BTreeMap<u128, BitVec>);
-impl CombStore for BTStore {
-    fn new(size: usize) -> Self{
-        BTStore(BTreeMap::new())
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct BitVec(u128, u128);
+impl BitVec {
+    fn set(&mut self, idx: usize, v: bool) {
+        let mut idx = idx;
+        let ed: &mut u128 = if idx >= 128 {
+            idx -= 128;
+            &mut self.1
+        }else {
+            &mut self.0
+        };
+        *ed |= 1 << idx;
+        //assert!(self.get(idx).unwrap());
     }
-    fn insert(&mut self, k: u128, v: BitVec) {
-        self.0.insert(k, v);
+    fn get(&self, idx: usize) -> Option<bool>{
+        let mut idx = idx;
+        let ed: &u128 = if idx >= 128 {
+            idx -= 128;
+            &self.1
+        }else {
+            &self.0
+        };
+        Some((*ed & (1 << idx))>0)
     }
-    fn get(&mut self, k: u128) -> Option<BitVec> {
-        self.0.get(&k).map(|x| {x.clone()})
+    fn or(&mut self, other: &Self) {
+        self.0 |= other.0;
+        self.1 |= other.1;
     }
-    fn clear(&mut self) {
-        self.0.clear();
+    fn from_elem(size: usize, v: bool) -> Self{
+        BitVec(0, 0)
     }
 }
 

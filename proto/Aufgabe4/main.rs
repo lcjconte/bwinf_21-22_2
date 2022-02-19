@@ -3,12 +3,13 @@ mod common;
 mod v1;
 mod exp1;
 mod exp2;
+mod exp3;
 //use primitive_types::U256;
 use std::time::Instant;
 use std::env;
 
 use common::*;
-use exp2::Solver;
+use exp3::Solver;
 
 trait ISolver<'a> {
     fn new() -> Self;
@@ -16,9 +17,9 @@ trait ISolver<'a> {
 }
 
 fn main() {
-    let filepath = env::args().nth(1).unwrap();
-    //let b = "eingaben/BonusAufgabe/stapel2.txt";
-    let input = TInput::read_from(&filepath).unwrap();
+    //let filepath = env::args().nth(1).unwrap();
+    let b = "eingaben/BonusAufgabe/stapel3.txt";
+    let input = TInput::read_from(b).unwrap();
     let mut solver = Solver::new();
     let now = Instant::now();
     solver.process(&input);
