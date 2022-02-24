@@ -9,7 +9,6 @@ use ahash::{RandomState, AHasher};
 use bit_vec::BitVec;
 
 use super::common::*;
-use super::ISolver;
 
 //[lo;hi)
 

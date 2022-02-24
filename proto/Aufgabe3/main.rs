@@ -153,6 +153,6 @@ fn balance_cost2(ctx: &mut Context, k: i64, bal: i64) -> f64{
 }
 
 fn main() {
-    let tInput = TInput::read_from("eingaben/Aufgabe3/hexmax5.txt").unwrap();
+    let tInput = TInput::read_from("eingaben/Aufgabe3/hexmax0.txt").unwrap();
     process(tInput);
 }

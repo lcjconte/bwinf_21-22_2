@@ -4,21 +4,18 @@ mod v1;
 mod exp1;
 mod exp2;
 mod exp3;
-//use primitive_types::U256;
+mod exp4;
+#[macro_use]
+extern crate lazy_static;
 use std::time::Instant;
 use std::env;
 
 use common::*;
-use exp3::Solver;
-
-trait ISolver<'a> {
-    fn new() -> Self;
-    fn process(&mut self, t_input: &'a TInput) -> Option<TOutput>;
-}
+use exp4::Solver;
 
 fn main() {
     //let filepath = env::args().nth(1).unwrap();
-    let b = "eingaben/BonusAufgabe/stapel3.txt";
+    let b = "eingaben/BonusAufgabe/stapel2.txt";
     let input = TInput::read_from(b).unwrap();
     let mut solver = Solver::new();
     let now = Instant::now();

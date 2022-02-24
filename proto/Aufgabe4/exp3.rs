@@ -39,7 +39,7 @@ impl<'a> ISolver<'a> for Solver<'a> {
         //self.nums.sort();
         let n = self.t_input.unwrap().n as usize;
         let k = (self.t_input.unwrap().k+1) as usize;
-        let res = self.explore(3, self.binom(n, k) as usize, k, 0);
+        let res = self.explore(3, self.binom(n/2, k/2) as usize, k, 0);
         if let Some(c) = res {
             println!("Found!");
             println!("{}", c.0);
