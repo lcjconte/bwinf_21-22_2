@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 use std::thread::{self, JoinHandle};
 use std::time::SystemTime;
@@ -313,7 +313,7 @@ impl<'a> Solver<'a> {
         let mut handles: Vec<JoinHandle<()>> = vec![];
         let (sender, receiver) = channel();
         let recap = self.calcu.binom(n/2, k/2) as usize;
-        let rjcount = jcount.max(cap/recap);
+        let rjcount = jcount.min(cap/recap);
         let mut storage: Vec<ThreadCtx<Store>> = vec![ThreadCtx {store: Store::new(recap), calc: self.calcu.clone()} ;rjcount];
         let mut res: SearchRes = None;
         for s_point in 0..((n as f64/2.0).ceil() as usize) {

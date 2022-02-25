@@ -14,9 +14,9 @@ use common::*;
 use exp4::Solver;
 
 fn main() {
-    //let filepath = env::args().nth(1).unwrap();
-    let b = "eingaben/BonusAufgabe/stapel2.txt";
-    let input = TInput::read_from(b).unwrap();
+    let filepath = env::args().nth(1).unwrap();
+    //let b = "eingaben/BonusAufgabe/stapel1.txt";
+    let input = TInput::read_from(&filepath).unwrap();
     let mut solver = Solver::new();
     let now = Instant::now();
     solver.process(&input);
