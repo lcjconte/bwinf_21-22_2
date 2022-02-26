@@ -1,64 +1,9 @@
-#[allow(non_snake_case)]
-use std::error::Error;
-use std::io::{self, BufRead};
-use std::fs::File;
-use std::ops::{BitOr, Index, IndexMut};
-use std::path::Path;
+#![allow(non_snake_case)]
+use std::ops::BitOr;
 use std::collections::HashMap;
 use ahash::RandomState;
+use super::io::*;
 
-pub const MAXN: usize = 256;
-pub const MAXK: usize = 20;
-
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where P: AsRef<Path>, {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
-}
-
-#[derive(Clone)]
-pub struct TInput {
-    pub n: i32,
-    pub k: i32,
-    pub m: i32,
-    pub nums: Vec<u128>,
-}
-impl TInput {
-    fn new() -> TInput {
-        TInput {n: 0, k: 0, m: 0, nums: vec![]}
-    }
-    pub fn read_from(file_name: &str) -> Result<TInput, Box<dyn Error>> {
-        let mut input = TInput::new();
-        for (idx, line) in read_lines(file_name)?.enumerate() {
-            match idx {
-                0 => {
-                    let parts: Vec<String> = line?.split(" ").map(|s| s.to_string()).collect();
-                    input.n = parts[0].trim().parse()?;
-                    input.k = parts[1].trim().parse()?;
-                    input.m = parts[2].trim().parse()?;
-                    input.nums.resize(input.n as usize, 0);
-                },
-                _ => {
-                    input.nums[idx-1] = u128::from_str_radix(&line?, 2)?
-                }
-            }
-        }
-        Ok(input)
-    }
-}
-
-pub struct TOutput {
-    pub nums: Vec<u128>,
-}
-impl TOutput {
-    pub fn verify(&self) -> bool{
-        let mut a = 0;
-        for i in &self.nums {
-            a ^= i;
-        }
-        a == 0
-    }
-}
 #[derive(Clone)]
 pub struct DParray<T: Copy>{
     underlying: Vec<T>,
@@ -88,7 +33,7 @@ impl<T: Copy> DParray<T> {
 #[allow(non_camel_case_types)]
 pub struct u256(u128, u128);
 impl u256 {
-    pub fn set(&mut self, mut idx: usize, v: bool) {
+    pub fn set(&mut self, mut idx: usize) {
         let ed: &mut u128 = if idx >= 128 {
             idx -= 128;
             &mut self.1
@@ -119,9 +64,9 @@ impl BitOr for u256 {
 
 pub fn get_xor(nums: &[u128], b: &u256) -> u128 {
     let mut d = 0;
-    for i in 0..nums.len() {
+    for (i, num) in nums.iter().enumerate() {
         if b.get(i).unwrap() {
-            d ^= nums[i];
+            d ^= num;
         }
     }
     d
@@ -134,9 +79,9 @@ pub trait ISolver<'a> {
 
 pub trait CombStore {
     fn new(size: usize) -> Self;
-    fn insert(&mut self, k: u128, v: u256) -> ();
+    fn insert(&mut self, k: u128, v: u256);
     fn get(&mut self, k: u128) -> Option<u256>;
-    fn clear(&mut self) -> ();
+    fn clear(&mut self);
 }
 
 #[derive(Clone)]
@@ -151,7 +96,7 @@ impl CombStore for HashMapStore {
         self.0.insert(k, v);
     }
     fn get(&mut self, k: u128) -> Option<u256> {
-        self.0.get(&k).map(|x| {x.clone()})
+        self.0.get(&k).cloned()
     }
     fn clear(&mut self) {
         self.0.clear();
@@ -166,7 +111,7 @@ impl Combination {
     }
     pub fn add(&self, b: u128, idx: usize) -> Combination {
         let mut c = Combination(self.0 ^ b, self.1.clone());
-        c.1.set(idx, true);
+        c.1.set(idx);
         c
     }
     pub fn combine(&self, b: &Combination) -> Combination {

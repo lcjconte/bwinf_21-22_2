@@ -1,22 +1,7 @@
-[package]
-name = "Runde2"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[[bin]]
-name="aufgabe3"
-path="./proto/Aufgabe3/main.rs"
-
-[[bin]]
-name="aufgabe4"
-path="./proto/Aufgabe4/main.rs"
-
-[dependencies]
-serde_json = "1.0"
-rand = "0.8.4"
-bit-vec = "0.6"
-rustc-hash = "1.1.0"
-ahash = "0.7.6"
-lazy_static = "1.4.0"
+members = [
+    "proto/BonusAufgabe_proto",
+    "proto/Aufgabe4",
+    "proto/Aufgabe3"
+]
