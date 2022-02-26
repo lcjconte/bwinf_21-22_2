@@ -15,25 +15,31 @@ impl<T: Copy> DParray<T> {
         DParray { underlying: vec, bounds: (x_max+1, y_max+1, z_max+1) }
     }
     pub fn get2_mut(&mut self, x: usize, y: usize) -> &mut T {
+        assert!(x < self.bounds.0 && y < self.bounds.1);
         &mut self.underlying[y*self.bounds.0+x]
     }
     pub fn get2(&self, x: usize, y: usize) -> T {
+        assert!(x < self.bounds.0 && y < self.bounds.1);
         self.underlying[y*self.bounds.0+x]
     }
     pub fn get3_mut(&mut self, x: usize, y: usize, z: usize) -> &mut T{
+        assert!(x < self.bounds.0 && y < self.bounds.1 && z < self.bounds.2);
         &mut self.underlying[z*self.bounds.1*self.bounds.0+y*self.bounds.0+x]
     }
     pub fn get3(&self, x: usize, y: usize, z: usize) -> T{
+        assert!(x < self.bounds.0 && y < self.bounds.1 && z < self.bounds.2);
         self.underlying[z*self.bounds.1*self.bounds.0+y*self.bounds.0+x]
     }
 }
 
 /// A 256 unsigned int with limited functionality
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[allow(non_camel_case_types)]
 pub struct u256(u128, u128);
 impl u256 {
+    /// Sets bit at idx to 1
     pub fn set(&mut self, mut idx: usize) {
+        debug_assert!(idx < 256);
         let ed: &mut u128 = if idx >= 128 {
             idx -= 128;
             &mut self.1
@@ -42,17 +48,19 @@ impl u256 {
         };
         *ed |= 1 << idx;
     }
-    pub fn get(&self, mut idx: usize) -> Option<bool>{
+    /// Returns value of bit at idx
+    pub fn get(&self, mut idx: usize) -> bool {
+        debug_assert!(idx < 256);
         let ed: &u128 = if idx >= 128 {
             idx -= 128;
             &self.1
         }else {
             &self.0
         };
-        Some((*ed & (1 << idx))>0)
+        (*ed & (1 << idx)) > 0
     }
     pub fn zero() -> Self {
-        u256(0, 0)
+        Self::default()
     }
 }
 impl BitOr for u256 {
@@ -62,10 +70,11 @@ impl BitOr for u256 {
     }
 }
 
+/// Returns xor of all numbers whose index is set in b
 pub fn get_xor(nums: &[u128], b: &u256) -> u128 {
     let mut d = 0;
     for (i, num) in nums.iter().enumerate() {
-        if b.get(i).unwrap() {
+        if b.get(i) {
             d ^= num;
         }
     }
@@ -77,7 +86,8 @@ pub trait ISolver<'a> {
     fn process(&mut self, t_input: &'a TInput) -> Option<TOutput>;
 }
 
-pub trait CombStore {
+/// Trait for fast storage and retrieval of combinations
+pub trait CombStore : Clone {
     fn new(size: usize) -> Self;
     fn insert(&mut self, k: u128, v: u256);
     fn get(&mut self, k: u128) -> Option<u256>;
@@ -102,13 +112,11 @@ impl CombStore for HashMapStore {
         self.0.clear();
     }
 }
-
-#[derive(Debug, Clone)]
+/// (xor, combination)
+#[derive(Clone, Default)]
 pub struct Combination(pub u128, pub u256);
 impl Combination {
-    pub fn new() -> Self{
-        Combination(0, u256::zero())
-    }
+    /// Add number and its index to new combination
     pub fn add(&self, b: u128, idx: usize) -> Combination {
         let mut c = Combination(self.0 ^ b, self.1.clone());
         c.1.set(idx);

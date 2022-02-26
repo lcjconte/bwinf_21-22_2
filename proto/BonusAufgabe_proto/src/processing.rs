@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 use std::thread::{self, JoinHandle};
@@ -12,23 +11,39 @@ struct Tuning {
     store_insertion: f64,
     store_find: f64,
 }
-
+/// Processing params and constraints
+#[derive(Clone, Default)]
+pub struct CalcParams {
+    s_limit: usize,
+    recursive: bool,
+    max_jobs: usize
+} 
+impl CalcParams {
+    pub fn new(size_limit: usize, recursive: bool, max_jobs: usize) -> CalcParams{
+        let obj = CalcParams {s_limit: size_limit, recursive, max_jobs};
+        assert!(obj.valid());
+        obj
+    }
+    pub fn valid(&self) -> bool {
+        self.s_limit > 0 && self.max_jobs > 0
+    }
+}
 #[derive(Clone)]
 pub struct CalcUnit {
-    nums: Vec<u128>,
+    nums: Vec<u128>, //In case efficient partition is introduced
     pascal: DParray<u128>,
     binom_sum: DParray<u128>,
     cost_dp: RefCell<DParray<(u128, bool)>>,
-    cost_dp_params: Option<(usize, bool, usize)>, //max capacity, recursive, jobs
+    cost_dp_params: CalcParams, 
 }
 impl CalcUnit {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let mut unit = CalcUnit {
             nums: vec![],
             pascal: DParray::new(0, MAXN, MAXK, 1),
             binom_sum: DParray::new(0, MAXN, MAXK, 1),
             cost_dp: RefCell::new(DParray::new((0, false), MAXN, MAXK, 1)),
-            cost_dp_params: None,
+            cost_dp_params: CalcParams::default(),
         };
         unit.init();
         unit
@@ -58,22 +73,23 @@ impl CalcUnit {
     }
     /// Binomial coefficient \ 
     /// n <= MAXN and k <= MAXK 
-    fn binom(&self, n: usize, k: usize) -> u128 {
+    pub fn binom(&self, n: usize, k: usize) -> u128 {
         assert!(n <= MAXN && k <= MAXK);
         self.pascal.get2(n, k)
     }
-    fn space_cost(&self, n: usize, k: usize) -> u128 {
+    pub fn space_cost(&self, n: usize, k: usize) -> u128 {
         self.binom(n, k)
     }
-    fn enum_cost(&self, n: usize, k: usize) -> u128 {
+    pub fn enum_cost(&self, n: usize, k: usize) -> u128 {
         assert!(n <= MAXN && k <= MAXK);
         self.binom_sum.get2(n, k)
     }
-    fn shifted_search_cost(&self, n: usize, k: usize) -> u128 {
+    pub fn shifted_search_cost(&self, n: usize, k: usize) -> u128 {
         n as u128*self.enum_cost(n/2, k/2) //TODO: Improve accuracy and add tuning
     }
-    fn expected_cost(&self, n: usize, k: usize) -> (u128, bool) {
-        let (space_limit, recursive, job_count) = self.cost_dp_params.expect("Unit not properly initialized");
+    pub fn expected_cost(&self, n: usize, k: usize) -> (u128, bool) {
+        assert!(self.cost_dp_params.valid(), "Unit not properly initialized");
+        let CalcParams { s_limit: space_limit, recursive: _, max_jobs } = self.cost_dp_params;
         if n==1 {
             return (1, false);
         }
@@ -89,7 +105,7 @@ impl CalcUnit {
             res += self.best_action(&pairs).0;
         }
         let mut usable_jobs = space_limit / self.binom(n/2, k/2) as usize;
-        usable_jobs = usable_jobs.min(job_count);
+        usable_jobs = usable_jobs.min(max_jobs);
         let cres = if usable_jobs > 0 && res > self.shifted_search_cost(n, k)/usable_jobs as u128{
             (self.shifted_search_cost(n, k)/usable_jobs as u128, true)
         } else {
@@ -98,9 +114,10 @@ impl CalcUnit {
         *self.cost_dp.borrow_mut().get2_mut(n, k) = cres;
         cres
     }
-    fn best_action(&self, pairs: &Vec<(usize, usize)>) -> (u128, usize, usize) {
+    pub fn best_action(&self, pairs: &Vec<(usize, usize)>) -> (u128, usize, usize) {
+        assert!(self.cost_dp_params.valid(), "Unit not properly initialized");
         let (alpha, beta, gamma) = (1.0, 1.0, 1.0); //TODO: Add tuning
-        let (space_limit, recursive, job_count) = self.cost_dp_params.expect("Unit not properly initialized");
+        let CalcParams { s_limit: space_limit, recursive, max_jobs: _ } = self.cost_dp_params;
         let mut mres = (u128::MAX, 0, 0);
         for i in 0..2 {
             let it_p = pairs[i];
@@ -130,12 +147,11 @@ pub struct Solver<'a> {
 
 impl<'a> ISolver<'a> for Solver<'a> {
     fn new() -> Solver<'a> {
-        let solver = Solver { 
+        Solver { 
             t_input: None,
             nums: Arc::new(vec![]),
             calcu: CalcUnit::new(),
-        };
-        solver
+        }
     }
     fn process(&mut self, t_input: &'a TInput) -> Option<TOutput> {
         println!("Processing");
@@ -144,13 +160,14 @@ impl<'a> ISolver<'a> for Solver<'a> {
         //self.nums.sort();
         let n = self.t_input.unwrap().n as usize;
         let k = (self.t_input.unwrap().k+1) as usize;
+        self.calcu.cost_dp_params = CalcParams {s_limit: 1e7 as usize, recursive: true, max_jobs: 4};
         let res = self.entry_point(4, 1e7 as usize, k, 0);
         if let Some(c) = res {
             println!("Found!");
             println!("{}", c.0);
             let mut v: Vec<u128> = vec![];
             for i in 0..n {
-                if c.1.get(i).unwrap() {
+                if c.1.get(i) {
                     v.push(self.nums[i]);
                     println!("{}", self.nums[i]);
                 }
@@ -168,7 +185,7 @@ impl<'a> ISolver<'a> for Solver<'a> {
     }
 }
 
-fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination) -> (), block: (usize, usize), shift: usize, window: (usize, usize), cur: Combination) {
+fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block: (usize, usize), shift: usize, window: (usize, usize), cur: Combination) {
     assert!(block.1 <= nums.len());
     if k == 0 {
         func(cur);
@@ -184,11 +201,6 @@ fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination) -> (), 
         enum_combs(nums, k-1, func, (i+1, block.1), shift, window, cur.add(nums[num_idx], num_idx));
     }
 }
-#[derive(Clone)]
-struct ThreadCtx<T: CombStore> {
-    store: T,
-    calc: CalcUnit,
-}
 
 type SearchRes = Option<Combination>;
 
@@ -203,15 +215,15 @@ fn search_divided<T: CombStore>(nums: &[u128], lo: usize, hi: usize, l: usize, r
     let (alt_k, alt_p) = pairs[0];
     let (it_k, it_p) = pairs[1];
     store.clear();
-    enum_combs(&nums, alt_k, &mut |x| {store.insert(x.0, x.1);}, alt_p, 0, (lo, hi), Combination::new());
+    enum_combs(nums, alt_k, &mut |x| {store.insert(x.0, x.1);}, alt_p, 0, (lo, hi), Combination::default());
     let mut it_func = |x: Combination| {
         let compl = x.0 ^ target;
         match store.get(compl) {
-            Some(c) => {res = Some(x.combine(&Combination(compl, c.clone())));},
+            Some(c) => {res = Some(x.combine(&Combination(compl, c)));},
             None => ()
         }
     };
-    enum_combs(&nums, it_k, &mut it_func, it_p, 0, (lo, hi), Combination::new());
+    enum_combs(nums, it_k, &mut it_func, it_p, 0, (lo, hi), Combination::default());
     res
 }
 /// Shifted search on all nums with equal distribution of k
@@ -227,26 +239,26 @@ fn search_shift<T: CombStore>(nums: &[u128], lo: usize, hi: usize, k: usize, shi
     let (alt_k, alt_p) = pairs[0];
     let (it_k, it_p) = pairs[1];
     store.clear();
-    enum_combs(&nums, alt_k, &mut |x| {store.insert(x.0, x.1);}, alt_p, shift, (lo, hi), Combination::new());
+    enum_combs(nums, alt_k, &mut |x| {store.insert(x.0, x.1);}, alt_p, shift, (lo, hi), Combination::default());
     let mut it_func = |x: Combination| {
         let compl = x.0 ^ target;
         match store.get(compl) {
-            Some(c) => {res = Some(x.combine(&Combination(compl, c.clone())));},
+            Some(c) => {res = Some(x.combine(&Combination(compl, c)));},
             None => ()
         }
     };
-    enum_combs(&nums, it_k, &mut it_func, it_p, shift, (lo, hi), Combination::new());
+    enum_combs(nums, it_k, &mut it_func, it_p, shift, (lo, hi), Combination::default());
     res
 }
-
-fn search_shift_thread<T: CombStore>(sender: Sender<(SearchRes, ThreadCtx<T>)>, nums: Arc<Vec<u128>>, mut context: ThreadCtx<T>, lo: usize, hi: usize, k: usize, shift: usize, target: u128) {
-    let res = search_shift(&nums, lo, hi, k, shift, target, &mut context.store);
-    sender.send((res.clone(), context)).unwrap();
+//TODO: Shorten args
+fn search_shift_thread<T: CombStore>(sender: Sender<(SearchRes, T)>, nums: Arc<Vec<u128>>, mut store: T, lo: usize, hi: usize, k: usize, shift: usize, target: u128) {
+    let res = search_shift(&nums, lo, hi, k, shift, target, &mut store);
+    sender.send((res.clone(), store)).unwrap();
 }
 
 impl<'a> Solver<'a> {
     fn entry_point(&mut self, jobs: usize, size_limit: usize, k: usize, target: u128) -> SearchRes {
-        self.calcu.cost_dp_params = Some((size_limit, true, jobs));
+        self.calcu.cost_dp_params = CalcParams::new(size_limit, true, jobs);
         println!("Estimated {}", self.calcu.expected_cost(self.nums.len(), k).0);
         self.explore(0, self.nums.len(), k, target)
         //self.explore_shifts(0, self.nums.len(), k, target)
@@ -266,7 +278,7 @@ impl<'a> Solver<'a> {
     fn explore_distribs(&self, lo: usize, hi: usize, k: usize, target: u128) -> SearchRes {
         type Store = HashMapStore;
         let n = hi-lo;
-        let (cap, recursive, jcount) = self.calcu.cost_dp_params.unwrap();
+        let CalcParams { s_limit: cap, recursive, max_jobs: jcount } = self.calcu.cost_dp_params;
         let sl = (n as f64/2.0).ceil() as usize;
         let sr = (n as f64/2.0).floor() as usize;
         let mut res: SearchRes = None;
@@ -294,7 +306,7 @@ impl<'a> Solver<'a> {
                             None => ()
                         }
                     };
-                    enum_combs(&self.nums, it_k, &mut it_func, it_p, 0, (lo, hi), Combination::new());
+                    enum_combs(&self.nums, it_k, &mut it_func, it_p, 0, (lo, hi), Combination::default());
                 }
                 _ => {
                     unimplemented!()
@@ -302,10 +314,10 @@ impl<'a> Solver<'a> {
             }
             
         }
-        return None;
+        None
     }
     fn explore_shifts(&self, lo: usize, hi: usize, k: usize, target: u128) -> SearchRes {
-        let (cap, _, jcount) = self.calcu.cost_dp_params.unwrap();
+        let CalcParams { s_limit: cap, recursive: _, max_jobs: jcount } = self.calcu.cost_dp_params;
         type Store = HashMapStore;
         let nums = self.nums.clone();
         let n = hi-lo;
@@ -313,16 +325,16 @@ impl<'a> Solver<'a> {
         let (sender, receiver) = channel();
         let recap = self.calcu.binom(n/2, k/2) as usize;
         let rjcount = jcount.min(cap/recap);
-        let mut storage: Vec<ThreadCtx<Store>> = vec![ThreadCtx {store: Store::new(recap), calc: self.calcu.clone()} ;rjcount];
+        let mut storage: Vec<Store> = vec![Store::new(recap) ;rjcount];
         let mut res: SearchRes = None;
         for s_point in 0..((n as f64/2.0).ceil() as usize) {
             //println!("{}", &s_point);
-            let st: ThreadCtx<Store>;
+            let st: Store;
             if storage.is_empty() {
-                let mres: (SearchRes, ThreadCtx<Store>) = receiver.recv().unwrap();
+                let mres: (SearchRes, Store) = receiver.recv().unwrap();
                 st = mres.1;
                 if let Some(c) = mres.0 {
-                    res = Some(c.clone());
+                    res = Some(c);
                     break;
                 }
             }
@@ -339,7 +351,7 @@ impl<'a> Solver<'a> {
             let h = handles.pop().unwrap();
             h.join().unwrap();
         }
-        return res;
+        res
     }
     
 }

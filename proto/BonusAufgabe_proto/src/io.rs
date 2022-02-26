@@ -13,7 +13,7 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct TInput {
     pub n: i32,
     pub k: i32,
@@ -21,11 +21,8 @@ pub struct TInput {
     pub nums: Vec<u128>,
 }
 impl TInput {
-    fn new() -> TInput {
-        TInput {n: 0, k: 0, m: 0, nums: vec![]}
-    }
     pub fn read_from(file_name: &str) -> Result<TInput, Box<dyn Error>> {
-        let mut input = TInput::new();
+        let mut input = TInput::default();
         for (idx, line) in read_lines(file_name)?.enumerate() {
             match idx {
                 0 => {
