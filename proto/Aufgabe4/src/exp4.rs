@@ -4,7 +4,7 @@ use std::sync::mpsc::{channel, Sender};
 use std::thread::{self, JoinHandle};
 use std::time::SystemTime;
 use std::cell::RefCell;
-//This version was able to solve 4 in 34 mins
+//This final experimental version was able to solve 4 in 34 mins
 use super::common::*;
 use super::ISolver;
 //[lo;hi)

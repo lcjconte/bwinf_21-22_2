@@ -128,3 +128,4 @@ impl Combination {
         c
     }
 }
+pub type SearchRes = Option<Combination>;

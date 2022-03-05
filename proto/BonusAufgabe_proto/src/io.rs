@@ -4,7 +4,7 @@ use std::io::{self, BufRead};
 use std::fs::File;
 use std::path::Path;
 
-pub const MAXN: usize = 256;
+pub const MAXN: usize = 255;
 pub const MAXK: usize = 20;
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
