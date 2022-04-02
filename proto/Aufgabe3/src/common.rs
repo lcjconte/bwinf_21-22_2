@@ -1,32 +1,52 @@
-use std::cmp::min;
+use std::cmp::{min, max};
 use std::collections::HashMap;
 use std::fs::File;
 use std::error::Error;
 use std::io::{BufReader, Read, BufRead};
-use std::ops::Add;
 use serde_json::Value;
 
 pub struct Characters {
     pub positions: i64,
-    pub chars: Vec<String>,
-    pub char_rep: HashMap<String, String>
+    pub chars: Vec<Character>,
+    pub from_disp: HashMap<String, Character>,
+    pub from_bits: HashMap<u32, Character>
 }
-pub struct TEffect {
-    pub req: i64,
-    pub cost: f64,
+#[derive(Clone)]
+pub struct Character {
+    pub bits: u32,
+    pub display: String,
 }
 
-#[derive(Copy, Clone)]
-pub struct BVec(pub i64, pub i64); //Balance vector
+pub struct Step {
+    pub from: (usize, usize),
+    pub to: (usize, usize),
+    pub result: Vec<u32>,
+}
 
-impl Add for BVec {
-    type Output = Self;
+fn get_char(s: &str, idx: usize) -> char{
+    s.as_bytes()[idx] as char
+}
 
-    fn add(self, other: Self) -> Self {
-        Self {
-            0: self.0 + other.0,
-            1: self.1 + other.1,
-        }
+/// Converts bitstring to u32
+pub fn to_u32(s: &str) -> u32 {
+    let s = s.as_bytes();
+    let mut res = 0;
+    for i in 0..s.len() {
+        res += (s[i] == b'1') as u32 *(1 << /*(s.len()-i-1)*/i);
+    }
+    res
+}
+
+fn get_bit(a: u32, idx: usize) -> bool {
+    (a & (1 << idx)) > 0
+}
+
+fn set_bit(a: &mut u32, idx: usize, val: u8) {
+    if val == 0 {
+        *a &= !(1 << idx);
+    }
+    else {
+        *a |= 1 << idx;
     }
 }
 
@@ -39,64 +59,123 @@ impl Characters {
         let mut chars = Characters {
             positions: 0, 
             chars: vec![], 
-            char_rep: HashMap::new()
+            from_disp: HashMap::new(),
+            from_bits: HashMap::new(),
         };
         let em = "Unexpected format";
         chars.positions = json["positions"].as_i64().ok_or(em)?;
         let combs = json["combinations"].as_object().ok_or(em)?;
         for pair in combs.into_iter() {
-            chars.chars.push(pair.0.to_string());
-            chars.char_rep.insert(chars.chars.last().unwrap().to_string(), pair.1.as_str().ok_or(em)?.to_string());
+            let c = Character {bits: to_u32(pair.1.as_str().ok_or(em)?), display: pair.0.to_string()};
+            chars.chars.push(c);
+            let c = chars.chars.last().unwrap();
+            chars.from_bits.insert(c.bits, c.clone());
+            chars.from_disp.insert(c.display.clone(), c.clone());
         }
         Ok(chars)
     }
-    pub fn char_transform(&self, a: &str, b: &str) -> TEffect{
-        let balance = self.char_balance(a, b);
-        TEffect { req: balance.1-balance.0, cost: min(balance.0, balance.1) as f64+((balance.1-balance.0) as f64/2.0).abs() }
-    }
-    pub fn char_balance(&self, a: &str, b: &str) -> BVec {
-        let mut balance = BVec(0, 0);
-        let (r1, r2) = (self.char_rep[a].as_str(), self.char_rep[b].as_str());
-        for i in 0..r1.len() {
-            if (r1.as_bytes()[i] as char, r2.as_bytes()[i] as char) == ('1', '0') {
-                balance.0 += 1;
-            }
-            else if (r1.as_bytes()[i] as char, r2.as_bytes()[i] as char) == ('0', '1') {
+    /// How does a -> b affect balance
+    pub fn conversion_balance(&self, a: &Character, b: &Character) -> (u64, u64) {
+        let mut balance = (0, 0);
+        let (r1, r2) = (a.bits, b.bits);
+        for i in 0..self.positions as usize {
+            if (get_bit(r1, i), get_bit(r2, i)) == (false, true) {
                 balance.1 += 1;
+            }
+            else if (get_bit(r1, i), get_bit(r2, i)) == (true, false) {
+                balance.0 += 1;
             }
         }
         balance
     }
-    /*pub fn string_balance(&self, a: &str, b: &str) -> BVec {
-        assert_eq!(a.len(), b.len());
-        let s1 = a.as_bytes();
-        let s2 = b.as_bytes();
-        let mut balance = BVec(0, 0);
-        for i in 0..a.len() {
-            balance += self.char_balance(s1[i] as char, b)
+    /// What is the cost and balance change of a -> b
+    pub fn conversion_effect(&self, a: &Character, b: &Character) -> (f64, i64) {
+        let balance = self.conversion_balance(a, b);
+        let minb = min(balance.0, balance.1);
+        let maxb = max(balance.0, balance.1);
+        (minb as f64 + 0.5*(maxb-minb) as f64, balance.1 as i64-balance.0 as i64)
+    }
+    pub fn stovec(&self, s: &str) -> Vec<&Character> {
+        let s = s.as_bytes();
+        let mut v = vec![];
+        for c in s {
+            v.push(&self.from_disp[&(*c as char).to_string()]);
         }
-        unimplemented!()
-        
-    }*/
+        v
+    }
+    /// Cost to transform a into b
+    pub fn string_cost(&self, a: Vec<&Character>, b: Vec<&Character>) -> u64 {
+        assert_eq!(a.len(), b.len());
+        let mut balance = (0, 0);
+        for i in 0..a.len() {
+            let r = self.conversion_balance(a[i], b[i]);
+            balance = (balance.0+r.0, balance.1+r.1);
+        }
+        assert_eq!(balance.0, balance.1, "Strings cannot be transformed!");
+        balance.0
+    }
+    /// Returns steps needed to transform a into b
+    pub fn string_steps(&self, a: Vec<&Character>, b: Vec<&Character>) -> Vec<Step> {
+        let mut a: Vec<u32> = a.iter().map(|x| {x.bits}).collect();
+        let mut b: Vec<u32> = b.iter().map(|x| {x.bits}).collect();
+        let mut v = vec![];
+        let mut idx = (0, 0);
+        let mut take_here = vec![];
+        let mut insert_here = vec![];
+        while idx.0 != a.len() {
+            if get_bit(a[idx.0], idx.1) != get_bit(b[idx.0], idx.1) {
+                if (get_bit(a[idx.0], idx.1), get_bit(b[idx.0], idx.1)) == (false, true) {
+                    insert_here.push(idx);
+                }
+                else if (get_bit(a[idx.0], idx.1), get_bit(b[idx.0], idx.1)) == (true, false) {
+                    take_here.push(idx);
+                }
+            }
+            while !insert_here.is_empty() && !take_here.is_empty() {
+                let from = take_here.pop().unwrap();
+                let to = insert_here.pop().unwrap();
+                set_bit(&mut a[from.0], from.1, 0);
+                set_bit(&mut b[to.0], to.1, 1);
+                v.push(Step {from, to, result: a.clone()});
+            }
+            idx.1 += 1;
+            if idx.1 == self.positions as usize {
+                idx.0 += 1;
+                idx.1 = 0;
+            }
+        }
+        v
+    }
 }
-
+#[derive(Clone)]
 pub struct TInput {
-    pub changes: i64,
+    pub m: u64,
     pub s: String
 }
 
 impl TInput {
     pub fn read_from(file_name: &str) -> Result<Self, Box<dyn Error>>{
-        let mut obj = TInput { changes: 0, s: String::new() };
+        let mut obj = TInput { m: 0, s: String::new() };
         let file = File::open(file_name)?;
         let mut buf = String::new();
         let mut reader = BufReader::new(file);
         reader.read_line(&mut buf)?;
-        obj.s = buf.trim().to_lowercase();
+        obj.s = buf.trim().to_string();
         buf.clear();
         reader.read_line(&mut buf)?;
-        obj.changes = buf.trim().parse()?;
+        obj.m = buf.trim().parse()?;
         Ok(obj)
     }
 }
 
+pub struct TOutput {
+    pub input: TInput,
+    pub s: String,
+    pub steps: Option<Vec<Step>>
+}
+
+impl TOutput {
+    pub fn verify(&self, chars: &Characters) -> bool{
+        chars.string_cost(chars.stovec(&self.input.s), chars.stovec(&self.s)) <= self.input.m
+    }
+}

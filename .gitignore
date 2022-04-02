@@ -3,3 +3,8 @@ __pycache__
 .ipynb_checkpoints
 .DS_store
 Cargo.lock
+*.aux
+*.log
+*.gz
+*.toc
+_minted**

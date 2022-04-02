@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
 use std::thread::{self, JoinHandle};
 use std::cell::RefCell;
+use std::time::Instant;
 
 use super::io::*;
 use super::structs::*;
@@ -15,6 +16,10 @@ struct Tuning {
     store_find: f64,      //Cost of find operation
     recursive_call: f64,  //Call overhead
 }
+// TODO: 
+//Measure tuning costs
+//Documentation !!
+//Python?
 
 /// Processing params and constraints
 #[derive(Clone, Default)]
@@ -179,6 +184,7 @@ impl ISolver<'_> for Solver {
     /// Process input. Resets internal state
     fn process(&mut self, input: &TInput) -> Option<TOutput> {
         println!("Processing");
+        let start_time = Instant::now();
         self.nums = Arc::new(input.nums.clone());
         //self.nums.sort();
         let n = self.nums.len();
@@ -188,28 +194,26 @@ impl ISolver<'_> for Solver {
         let res = self.explore(Segment(0, n), k, 0);
         if let Some(c) = res {
             println!("Found!");
-            println!("{}", c.0);
             let mut v: Vec<u128> = vec![];
             for i in 0..n {
                 if c.1.get(i) {
                     v.push(self.nums[i]);
-                    println!("{}", self.nums[i]);
                 }
             }
             println!("{}", v.len());
-            let output = TOutput {nums: v};
-            println!("{}", output.verify());
+            let output = TOutput {nums: v, runtime: start_time.elapsed().as_millis()};
+            println!("{}", output);
+            println!("{}", if output.verify() {"Valid!"} else {"Invalid!"});
             Some(output)
         }
         else {
             println!("Not found!");
             None
         }
-        
     }
 }
 /// Calls func on all combinations of length k in the window
-/// The combination space can be shifted
+/// The combination space can be shifted FIXME: URGENT!!!
 fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block: Segment, shift: usize, window: Segment, cur: Combination) {
     assert!(block.1 <= nums.len());
     if k == 0 {
@@ -282,7 +286,6 @@ impl Solver {
     }
     fn lr_search(&self, segment: Segment, k: usize, target: u128) -> SearchRes {
         type Store = HashMapStore;
-        let CalcParams { s_limit: cap, recursive, max_jobs: jcount } = self.calcu.cost_dp_params;
         let Segment(lo, hi) = segment;
         let n = hi-lo;
         let sl = (n as f64/2.0).ceil() as usize;
@@ -295,7 +298,7 @@ impl Solver {
             let action = self.calcu.lr_single_cost(n, l, r);
             match action.1 {
                 0 => {
-                    if let Some(c) = search_single_lr(&self.nums, segment, l, r, target, &mut Store::new(0)) { 
+                    if let Some(c) = search_single_lr(&self.nums, segment, l, r, target, &mut Store::new(self.calcu.binom(n/2, pass.ca.1) as usize)) { 
                         return Some(c);
                     }
                 }
@@ -329,7 +332,7 @@ impl Solver {
         let rjcount = jcount.min(cap/recap);
         let mut storage: Vec<Store> = vec![Store::new(recap) ;rjcount];
         let mut res: SearchRes = None;
-        for s_point in 0..((n as f64/2.0).ceil() as usize) {
+        for s_point in 0..(((n as f64/2.0).floor()+1.0) as usize) {
             let st: Store;
             if storage.is_empty() {
                 let mres: (SearchRes, Store) = receiver.recv().unwrap();

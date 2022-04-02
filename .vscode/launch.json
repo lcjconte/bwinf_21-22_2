@@ -8,7 +8,7 @@
         "type": "lldb",
         "request": "launch",
         "name": "Launch",
-        "program": "target/debug/aufgabe4",
+        "program": "target/debug/aufgabe3",
         "args": [],
         "cwd": "${workspaceFolder}",
         "preLaunchTask": "rust: cargo build"

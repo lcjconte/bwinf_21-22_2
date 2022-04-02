@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 use std::error::Error;
+use std::fmt::{self, Display};
 use std::io::{self, BufRead};
 use std::fs::File;
 use std::path::Path;
@@ -43,6 +44,8 @@ impl TInput {
 
 pub struct TOutput {
     pub nums: Vec<u128>,
+    /// Runtime in ms
+    pub runtime: u128,
 }
 impl TOutput {
     pub fn verify(&self) -> bool {
@@ -51,5 +54,14 @@ impl TOutput {
             a ^= i;
         }
         a == 0
+    }
+}
+impl Display for TOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        //self.nums.sort();
+        for (idx, el) in self.nums.iter().enumerate() {
+            write!(f, "{}{}", el, if idx==self.nums.len()-1 {""} else {"\n"})?;
+        }
+        Ok(())
     }
 }
