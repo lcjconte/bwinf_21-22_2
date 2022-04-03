@@ -1,41 +1,8 @@
+use super::io::*;
+use std::f64::INFINITY;
 use std::cmp::{min, max};
 use std::collections::HashMap;
-use std::fs::File;
-use std::error::Error;
-use std::io::{BufReader, Read, BufRead};
-use serde_json::Value;
-
-pub struct Characters {
-    pub positions: i64,
-    pub chars: Vec<Character>,
-    pub from_disp: HashMap<String, Character>,
-    pub from_bits: HashMap<u32, Character>
-}
-#[derive(Clone)]
-pub struct Character {
-    pub bits: u32,
-    pub display: String,
-}
-
-pub struct Step {
-    pub from: (usize, usize),
-    pub to: (usize, usize),
-    pub result: Vec<u32>,
-}
-
-fn get_char(s: &str, idx: usize) -> char{
-    s.as_bytes()[idx] as char
-}
-
-/// Converts bitstring to u32
-pub fn to_u32(s: &str) -> u32 {
-    let s = s.as_bytes();
-    let mut res = 0;
-    for i in 0..s.len() {
-        res += (s[i] == b'1') as u32 *(1 << /*(s.len()-i-1)*/i);
-    }
-    res
-}
+use std::time::Instant;
 
 fn get_bit(a: u32, idx: usize) -> bool {
     (a & (1 << idx)) > 0
@@ -51,29 +18,6 @@ fn set_bit(a: &mut u32, idx: usize, val: u8) {
 }
 
 impl Characters {
-    pub fn read_from(file_name: &str) -> Result<Self, Box<dyn Error>> {
-        let file = File::open(file_name)?;
-        let mut s = String::new();
-        BufReader::new(file).read_to_string(&mut s)?;
-        let json: Value = serde_json::from_str(&s)?;
-        let mut chars = Characters {
-            positions: 0, 
-            chars: vec![], 
-            from_disp: HashMap::new(),
-            from_bits: HashMap::new(),
-        };
-        let em = "Unexpected format";
-        chars.positions = json["positions"].as_i64().ok_or(em)?;
-        let combs = json["combinations"].as_object().ok_or(em)?;
-        for pair in combs.into_iter() {
-            let c = Character {bits: to_u32(pair.1.as_str().ok_or(em)?), display: pair.0.to_string()};
-            chars.chars.push(c);
-            let c = chars.chars.last().unwrap();
-            chars.from_bits.insert(c.bits, c.clone());
-            chars.from_disp.insert(c.display.clone(), c.clone());
-        }
-        Ok(chars)
-    }
     /// How does a -> b affect balance
     pub fn conversion_balance(&self, a: &Character, b: &Character) -> (u64, u64) {
         let mut balance = (0, 0);
@@ -115,7 +59,7 @@ impl Characters {
         balance.0
     }
     /// Returns steps needed to transform a into b
-    pub fn string_steps(&self, a: Vec<&Character>, b: Vec<&Character>) -> Vec<Step> {
+    pub fn string_steps(&self, a: &[&Character], b: &[&Character]) -> Vec<Step> {
         let mut a: Vec<u32> = a.iter().map(|x| {x.bits}).collect();
         let mut b: Vec<u32> = b.iter().map(|x| {x.bits}).collect();
         let mut v = vec![];
@@ -147,31 +91,61 @@ impl Characters {
         v
     }
 }
-#[derive(Clone)]
-pub struct TInput {
-    pub m: u64,
-    pub s: String
+
+struct Context<'a> {
+    s: &'a Vec<&'a Character>,
+    chars: &'a Characters,
+    dp: &'a mut HashMap<(usize, i64), f64>,
 }
 
-impl TInput {
-    pub fn read_from(file_name: &str) -> Result<Self, Box<dyn Error>>{
-        let mut obj = TInput { m: 0, s: String::new() };
-        let file = File::open(file_name)?;
-        let mut buf = String::new();
-        let mut reader = BufReader::new(file);
-        reader.read_line(&mut buf)?;
-        obj.s = buf.trim().to_string();
-        buf.clear();
-        reader.read_line(&mut buf)?;
-        obj.m = buf.trim().parse()?;
-        Ok(obj)
+/// Cost to balance suffix
+fn balancing_cost(ctx: &mut Context, k: usize, bal: i64) -> f64 {
+    if k == ctx.s.len() {
+        if bal==0 {
+            return 0.0;
+        }
+        return INFINITY;
     }
+    if ctx.dp.contains_key(&(k, bal)) {
+        return ctx.dp[&(k, bal)];
+    }
+    let mut cmin: f64 = INFINITY;
+    for c in ctx.chars.chars.iter().rev() {
+        let effect = ctx.chars.conversion_effect(ctx.s[k], c);
+        cmin = f64::min(cmin, balancing_cost(ctx, k+1, bal+effect.1)+effect.0);
+    }
+    ctx.dp.insert((k, bal), cmin);
+    cmin
 }
 
-pub struct TOutput {
-    pub input: TInput,
-    pub s: String,
-    pub steps: Option<Vec<Step>>
+pub fn process(input: &TInput, chars: &Characters, include_steps: bool) -> TOutput {
+    let start_time = Instant::now();
+    let mut dp = HashMap::new();
+    let mut context = Context {s: &chars.stovec(&input.s), chars, dp: &mut dp};
+    let n = input.s.len();
+    let (mut cbal, mut cost) = (0, 0 as f64);
+    let mut n_string: Vec<&Character> = vec![];
+    println!("Starting ...");
+    for i in 0..n {
+        for c in chars.chars.iter().rev() {
+            let effect = chars.conversion_effect(context.s[i], c);
+            let nbal = cbal + effect.1;
+            let ncost = cost + effect.0;
+            if ncost+balancing_cost(&mut context, i+1, nbal) <= input.m as f64 {
+                n_string.push(c);
+                cost = ncost;
+                cbal = nbal;
+                break;
+            }
+        }
+    }
+    let res: Vec<String> = n_string.iter().map(|x| {x.display.to_string()}).collect();
+    let res = res.join("");
+    let steps: Option<Vec<Step>> = None;
+    if include_steps {
+        chars.string_steps(context.s, &n_string);
+    }
+    TOutput {input: input.to_owned(), s: res, steps, runtime: start_time.elapsed().as_millis()}
 }
 
 impl TOutput {

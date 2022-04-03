@@ -52,106 +52,24 @@
 % Hier kommt der Inhalt hin!
 
 \section{Lösungsidee}
-\subsection{Problem a)}
-Gegeben sind N 128-Bit Zahlen $\{a_0,\dots, a_{N-1}\} = Z$, die gegebenen Karten. (Indizes sind 0-basiert) \\
-Gesucht sind k Indizes I, sodass $a_{i_0} \oplus \dots \oplus a_{i_{k-2}} = a_{i_{k-1}}$ für $i_j \in I$, die Indizes der Karten, die nicht von den Freunden Zaras hinzugefügt wurden. (k hier ist um eins größer als in der Aufgabenstellung!) \\
-Da $x \oplus x = 0$ und $\oplus$ assoziativ und kommutativ ist gilt:
-\begin{align}
-	a_{i_0} \oplus \dots \oplus a_{i_{k-2}} = a_{i_{k-1}}  \iff
-	a_{i_0} \oplus \dots \oplus a_{i_k-1} = 0
-\end{align}
-Das Verfahren zum Finden der Menge I wird abgesehen vom nächsten Block im Rest der Dokumentation erklärt.
+\subsection{Ansatz}
+Gegeben ist ein String aus $N$ Hexadezimalziffern, wobei jeder Ziffer eine einzigartige Kombination aus bis zu sieben Segmenten zugewiesen wird. Durch das 'Umlegen' dieser Segmente, welches maximal $M$ erfolgen darf, soll nun der größtmöglichste Hexadezimalstring gebildet werden. \\
+Anstatt Umlegungen einzelner Segmente zu betrachten werden im Folgenden immer Transformationen von einer vollständigen Ziffer zu einer vollständigen Ziffer betrachtet. Zum Beispiel 2 -> 7. Wenn man die einzelnen Segmentplätze wie in Abbildung 1 ordnet, kann jeder Ziffer eine 7 bit Zahl zugeordnet werden. Ist das Bit an Position p an, dann ist das p-te Segment bei der Darstellung der Ziffer auch an. 2 -> 7 entspricht dann 1011101 -> 1010010. Die zwei Bit-Strings sind an 3 Positionen gleich. An einer Position besitzt nur 7 ein aktives Segment und an zwei besitzt nur 2 ein aktives Segment. \\
+Die zur Umformung des gesamten Strings relevanten Informationen sind für jede einzelne Transformation vollständig im 'Balancetupel' enthalten:
+\begin{gather*}
+b_{a->c} := (\text{Anzahl der Segmente, die nur in a an sind}, \text{Anzahl der Segmente, die nur in c an sind}) \\
+\implies b_{2->7} = (2, 1)
+\end{gather*}
+An b erkennt man, wie viele Segmente dem Rest des Strings entnommen werden müssen, wie viele der Rest des Strings aufnehmen muss und wie viele innerhalb der Ziffer verschoben werden müssen um die Transformation zu ermöglichen. \\
+Die genaueren Informationen dazu enthält der 'Kostentupel':
+\begin{gather*}
+k_{a->c} := (\mid b_{a->c}_0 - b_{a->c}_1 \mid + add, b_{a->c}_0 - b_{a->c}_1) \\
+\implies k_{2->7} = (1 + add, 1)
+\end{gather*}
+Der Kostentupel enthält an erster Stelle die "Kosten", also Umlegungen, die die Transformation benötigt, und an zweiter Stelle die Anzahl an über oder unterflüssigen Segmenten. Die Kosten setzen sich erst einmal aus den internen Umlegungen zusammen und dann noch aus den Umlegungen, die erst durch die Transformation einer Ziffer an einer anderen Stelle im String ermöglicht werden. Die gesamte Lösungsidee beruht auf dem Gedanken, dass man bei der Suche nach dem Lösungs-String einen 'hypotetischen' String mittels einzelner 
 
-\subsection{Problem b)}
-Hat man einmal die Menge I und damit die Schlüssel sowie die Sicherungskarte gefunden, stellt sich die Frage, wie Zara ein Haus ohne mehr als zwei Fehlversuche zu benötigen aufsperren kann. \\
-Dies ist möglich, da die Codewörter aufsteigend sortiert sind. Das einzige Problem ist, dass die Sicherungskarte aufgrund von (1) nicht von den Schlüsseln unterscheidbar ist. Um ein Haus i aufzusperren muss Zara zuerst die i-te der sortierten Karten verwenden. Falls diese nicht passt weiß sie, dass die Sicherungs-Karte im Bereich [0;i) liegt und deshalb alle Indizes ab der Sicherungskarte um eins größer sind als sie seien sollten. Die gesuchte Karte ist dann die (i+1)-te
-
-\subsection{Generelle Definitionen}
-Es sind die 128-Bit Zahlen $a_0,\dots, a_{N-1}$ gegeben. \\
-\[ Z := \text{Indizes in } [0;N) \]
-\[\text{Für eine Indexmenge z: } xor(z) := \bigoplus_{x \in z}{a_x}\]
-
-\subsection{Naive Ansätze}
-Das Problem besitzt eine gewisse Ähnlichkeit zum Subset sum Problem für eine feste Anzahl an Summanden, einziger Unterschied ist, dass bei diesem Problem $\oplus$ statt $+$ verwendet wird. Eine DP-Lösung, wie sie beim Subset sum Problem für kleine Summen möglich wäre kann hier nicht verwendet werden, da die Zahlen im Bereich $[0, 2^{128})$ liegen. \\
-Ein anderer möglicher Ansatz wäre alle k-Kombinationen an Indizes in [0;N) auszuprobieren, doch für N=111 und k=11 gibt es 
-$\binom{n}{k}\approx 4.7 \cdot 10^{14}$ viele Möglichkeiten. Diese alle einzeln auszuprobieren würde zu lange dauern. 
-
-\subsection{Effizientere Durchquerung des Suchraums durch Hashtable Strukur}
-Die gegebenen Zahlen werden in zwei Hälften L und R geteilt.
-Angenommen folgende Information ist bekannt: l Indizes liegen in L und r Indizes liegen in R
-Eine l-Kombination an Indizes $K_1$ aus der ersten Hälfte ist dann teil der Lösungsmenge, wenn eine korrespondierende r-Kombination an Indizes $K_2$ aus der zweiten Hälfte existiert, so dass: (Zielwert?)
-\begin{align*}
-xor(K_1) \oplus xor(K_2) = 0  \\
-\implies xor(K_1) = xor(K_2) 
-\end{align*}
-Anstatt für alle $\binom{N/2}{l}$ möglichen $K_1$ jeweils alle $\binom{N/2}{r}$ möglichen $K_2$ auszuprobieren \\(Laufzeit: $O(\binom{N/2}{l} \cdot \binom{N/2}{r})$, \\
-können alle $\binom{N/2}{r}$ möglichen $K_2$ in einer Hashtable gespeichert werden, wo sie mit $xor(K_2)$ als Schlüssel in konstanter Zeit gefunden werden können (Laufzeit: $O(\binom{N/2}{l} + \binom{N/2}{r})$. \\Für r=5 müssen nur $\binom{55}{5} \approx 3.5 \cdot 10^6$ viele Werte gespeichert werden. (Es sei an dieser Stelle angemerkt, dass das Durchsuchen von $\binom{n}{k}$ Kombinationen besser durch $O(\sum_{j=1}^{k} \binom{n}{j})$!!!!(Nur für kleine k) beschrieben wird. Da die Differenz jedoch relevant zur Schätzung der Laufzeit ist wird sie ignoriert.) \\
-Das Problem ist nun aber, dass l und r nicht bekannt sind. Zur Lösung gibt es zwei Ansätze
-
-\subsection{Ansatz 1: Alle möglichen Paare l, r ausprobieren}
-Da es für k=11 nur 11 mögliche Paare (l, r) gibt wäre es denkbar all diese Paare auszuprobieren. Eine Hürde stellen die Extremfälle dar, in denen zum Beispiel l=0 ist. Dann gibt es nämlich $\binom{55}{11} \approx 1.2 \cdot 10^{11}$ Kombinationen rechts. Zwei Optimierungen werden benötigt: 
-\begin{enumerate}
-  \item Es sollen wenn überhaupt immer die Kombinationen der Hälfte mit weniger Kombinationen in der Hashtable gespeichert werden. So wird der benötigte Speicher reduziert, die Laufzeit bleibt gleich.
-  \item Falls die Anzahl an Kombinationen zu groß ist um komplett durchgegangen zu werden, soll der Suchalgorithmus für jede Kombination der geringeren Hälfte rekursiv auf die größere Hälfte angewandt werden. \\
-  Im Falle l=0 würde der Vorgang also einmal rekursiv auf die rechte Hälfte angewandt werden.
-\end{enumerate}
-Der gerade genannte Ansatz ist in der Praxis mit bestimmten Optimierungen schnell genug um das Beispiel mit n=111 und k=11 in ca. 13 Minuten zu lösen. Jedoch ist er zu langsam für die größeren Beispiele, schwer zu parallelisieren und unschön.
-
-\subsection{Ansatz 2: Verschieben der Hälften}
-Es sind die Paare (l, r) am aufwendigsten, bei denen l und r weit auseinander liegen: 
-\[
-\frac{\binom{56}{0}+\binom{55}{11}}{\binom{56}{5} + \binom{55}{5}} \approx 3.3 \cdot 10^3 
-\]
-Der folgend beschriebene Algorithmus iteriert über verschiedene Zusammensetzung der Hälften und belässt dabei die l r Verteilung gleich, so dass l und r so nah aneinander wie möglich sind.
-Es werden maximal $\floor{\frac{N}{2}}+1$ Iterationen benötigt und diese werden von 0 an in einer Schritten gezählt.
-Wie werden die Hälften zusammengesetzt und ist garantiert, dass alle Kombinationen betrachtet werden? \\
-Die Hälften kann man sich als zusammenhängende Bereiche vorstellen, die bei jeder Iteration verschoben werden.
-Beispiel für n=8:
-\begin{itemize}
-\item s=0: ****----
-\item s=1 -****---
-\item s=2 --****--
-\item s=3 ---****-
-\item s=4 ----****
-\end{itemize} 
-Allgemein entsprechen bei der Iteration s: \\
-Die erste Hälfte $L_s$ := $[s;\ceil{N/2}+s)$ \\
-Die Zweite Hälfte $R_s$ := $Z\backslash L_s$ \\
-Die Zweite Hälfte \\$[(\ceil{N/2}+s) \mod N;(N+s) \mod N) := [0;N+s \mod N) \cup [(\ceil{N/2}+s \mod (N+1);N)$ \\
-Bild?\\
-\textbf{Hilfssatz: Für jede k-Kombination aus Z existiert mindestens ein $0 <= s <= \ceil{\frac{n}{2}}$ , so dass $\ceil{\frac{k}{2}}$ der Elemente der k-Kombination in $L_s$ sind}( und $\floor{\frac{k}{2}}$ in $R_s$. \\
-Aus dem Hilfssatz folgt die Korrektheit des Verfahrens, da dann jede k-Kombination bei mindestens einer Iteration in Betracht gezogen wird. Die Laufzeit des zweiten Verfahrens ist ca. $O(N*\binom{N/2}{k/2})$
-\subsubsection{Beweis des Hilfssatzes}
-Um denn Satz zu beweisen, reicht es zu zeigen, dass für eine beliebige k-Kombination C ein s gefunden werden kann, dass die erwartete Bedingung erfüllt. \\
-$x_s$ sei die Anzahl der Kombinationselemente in der ersten Hälfte: $x_s := \mid K \cap L_s \mid$\\
-$y_s$ sei die Anzahl der Kombinationselemente in der zweiten Hälfte $y_s = k - x_s$ \\
-Zentral für den Beweis ist folgende Beobachtung über die Veränderung von $x_s$ bei Änderung von s:\\
-\begin{equation}
-\mid x_{s+1}-x_s \mid = 
-\begin{cases}
-1\\
-0
-\end{cases}
-\end{equation}
-Dies ergibt sich daraus, dass bei einer "Verschiebung" von $L_s$ maximal ein Element entfernt werden muss und maximal eines hinzugefügt werden muss.
-Um den Satz zu beweisen muss nun gezeigt werden, dass $\ceil{k/2}$ zwischen inklusiv $x_0$ und $x_{\floor{n/2}}$ liegt. \\
-$u := \begin{cases}
-1, \text{falls n ungerade ist und für das mittlere immer in $L_s$ enthaltene Element gilt}\floor{n/2} \in C \\
-0, \text{in allen anderen Fällen }\end{cases}$ \\
-$(x_0 = a+u) \text{ wird nach $\floor{n/2}+1$ Iterationen zu } (x_{\floor{n/2}} = b+u)$ \\
-$a+u+b = k$\\
-$\ceil{k/2}$ zwischen inklusiv $x_0$ und $x_{\floor{n/2}}$ entspricht also \\
-$\ceil{\frac{a+u+b}{2}}$ zwischen inklusiv $a+u$ und $b+u$
-Es wird zwischen u=0 und u=1 unterschieden:\\
-Im ersten Fall gilt: $\ceil{\frac{a+b}{2}}$ zwischen inklusiv $a$ und $b$, da der Durchschnitt immer zwischen seinen zwei Teilen liegt.\\
-Im zweiten Fall muss zwischen $(a+b) \mid 2$ und $(a+b) \nmid 2$ unterschieden werden. \\
-Falls $(a+b) \mid 2$ gilt $\ceil{\frac{a+b+1}{2}}$ = $\frac{a+b}{2}+1$.\\
-Das $\frac{a+b}{2}+1$ zwischen a+1 und b+1 wird bereits im ersten Fall gezeigt.
-Falls $(a+b) \nmid 2$ wird zuerst angenommen, dass $a <= b$. Was folgt gilt auch für $b > a$, da a und b umtauschbar sind.\\ $(\ceil{\frac{a+b+1}{2}} = \frac{a+b}{2}+\frac{1}{2}$ \\ $\frac{a+b}{2}+\frac{1}{2}$ ist kleinergleich b+1, da $a<b$.\\
-a+1 ist kleinergleich $\frac{a+b}{2}+\frac{1}{2}$, da der einzige Fall in dem das nicht so wäre a=b fordert und dies $(a+b) \nmid 2$ wiederspricht.
-\\
-\subsection{Das komplette Verfahren}
-Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel bis auf 4 einigermaßen schnell zu lösen. Um alle Beispiele zu lösen bietet sich eine Kombination beider Ansätze an, die es erlaubt mehr Arbeit zu parallelisieren. Ein Flaschenhals bei der Parallelisation, wird sich in der Umsetzung herausstellen, ist Ram. Um alle 8 Kerne eines CPUs auszunutzen muss die Fragestellung erst mithilfe des 1. Ansatzes in kleinere Probleme geteilt werden, welche dann mit dem 2. Ansatz effizient parallel gelöst werden können. Mit diesem kombinierten Ansatz kann auch das schwierigste Beispiel in weniger als einer halben Stunde gelöst werden.
+\subsection{Weshalb eine Ziffer nie komplett leer ist}
+Ausbreiten, dann in Reihenfolge
 
 
 \section{Umsetzung}

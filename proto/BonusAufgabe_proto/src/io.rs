@@ -3,10 +3,17 @@ use std::error::Error;
 use std::fmt::{self, Display};
 use std::io::{self, BufRead};
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub const MAXN: usize = 255;
 pub const MAXK: usize = 20;
+
+/// Returns manifest path plus argument
+pub fn manifest_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
+    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.push(plus);
+    d
+}
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where P: AsRef<Path>, {
@@ -22,7 +29,7 @@ pub struct TInput {
     pub nums: Vec<u128>,
 }
 impl TInput {
-    pub fn read_from(file_name: &str) -> Result<TInput, Box<dyn Error>> {
+    pub fn read_from<P: AsRef<Path>>(file_name: P) -> Result<TInput, Box<dyn Error>> {
         let mut input = TInput::default();
         for (idx, line) in read_lines(file_name)?.enumerate() {
             match idx {

@@ -327,7 +327,7 @@ impl<'a> Solver<'a> {
     }
     
 }
-
+/* 
 #[cfg(test)]
 mod test {
     use super::*;
@@ -366,3 +366,4 @@ mod test {
         assert_eq!(msb(5), 4);
     }
 }
+*/
