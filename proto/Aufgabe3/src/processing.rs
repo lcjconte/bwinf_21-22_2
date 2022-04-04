@@ -1,13 +1,11 @@
 use super::io::*;
 use std::f64::INFINITY;
 use std::cmp::{min, max};
-use std::collections::HashMap;
 use std::time::Instant;
 
 fn get_bit(a: u32, idx: usize) -> bool {
     (a & (1 << idx)) > 0
 }
-
 fn set_bit(a: &mut u32, idx: usize, val: u8) {
     if val == 0 {
         *a &= !(1 << idx);
@@ -19,7 +17,7 @@ fn set_bit(a: &mut u32, idx: usize, val: u8) {
 
 impl Characters {
     /// How does a -> b affect balance
-    pub fn conversion_balance(&self, a: &Character, b: &Character) -> (u64, u64) {
+    pub fn transform_balance(&self, a: &Character, b: &Character) -> (u64, u64) {
         let mut balance = (0, 0);
         let (r1, r2) = (a.bits, b.bits);
         for i in 0..self.positions as usize {
@@ -33,12 +31,13 @@ impl Characters {
         balance
     }
     /// What is the cost and balance change of a -> b
-    pub fn conversion_effect(&self, a: &Character, b: &Character) -> (f64, i64) {
-        let balance = self.conversion_balance(a, b);
+    pub fn transform_effect(&self, a: &Character, b: &Character) -> (f64, i64) {
+        let balance = self.transform_balance(a, b);
         let minb = min(balance.0, balance.1);
         let maxb = max(balance.0, balance.1);
         (minb as f64 + 0.5*(maxb-minb) as f64, balance.1 as i64-balance.0 as i64)
     }
+    /// Converts string to vec of characters
     pub fn stovec(&self, s: &str) -> Vec<&Character> {
         let s = s.as_bytes();
         let mut v = vec![];
@@ -48,11 +47,11 @@ impl Characters {
         v
     }
     /// Cost to transform a into b
-    pub fn string_cost(&self, a: Vec<&Character>, b: Vec<&Character>) -> u64 {
+    pub fn string_cost(&self, a: &Vec<&Character>, b: &Vec<&Character>) -> u64 {
         assert_eq!(a.len(), b.len());
         let mut balance = (0, 0);
         for i in 0..a.len() {
-            let r = self.conversion_balance(a[i], b[i]);
+            let r = self.transform_balance(a[i], b[i]);
             balance = (balance.0+r.0, balance.1+r.1);
         }
         assert_eq!(balance.0, balance.1, "Strings cannot be transformed!");
@@ -95,7 +94,13 @@ impl Characters {
 struct Context<'a> {
     s: &'a Vec<&'a Character>,
     chars: &'a Characters,
-    dp: &'a mut HashMap<(usize, i64), f64>,
+    dp: &'a mut Vec<f64>
+}
+impl<'a> Context<'a> {
+    fn get_dp(&mut self, k: usize, bal: i64) -> &mut f64 {
+        let balsize = self.s.len()*self.chars.positions as usize;
+        &mut self.dp[2*k*balsize+bal as usize+balsize] 
+    }
 }
 
 /// Cost to balance suffix
@@ -106,29 +111,29 @@ fn balancing_cost(ctx: &mut Context, k: usize, bal: i64) -> f64 {
         }
         return INFINITY;
     }
-    if ctx.dp.contains_key(&(k, bal)) {
-        return ctx.dp[&(k, bal)];
+    if *ctx.get_dp(k, bal) != -1.0 {
+        return *ctx.get_dp(k, bal);
     }
     let mut cmin: f64 = INFINITY;
     for c in ctx.chars.chars.iter().rev() {
-        let effect = ctx.chars.conversion_effect(ctx.s[k], c);
+        let effect = ctx.chars.transform_effect(ctx.s[k], c);
         cmin = f64::min(cmin, balancing_cost(ctx, k+1, bal+effect.1)+effect.0);
     }
-    ctx.dp.insert((k, bal), cmin);
+    *ctx.get_dp(k, bal) = cmin;
     cmin
 }
 
 pub fn process(input: &TInput, chars: &Characters, include_steps: bool) -> TOutput {
     let start_time = Instant::now();
-    let mut dp = HashMap::new();
-    let mut context = Context {s: &chars.stovec(&input.s), chars, dp: &mut dp};
     let n = input.s.len();
+    let mut dp = vec![-1.0; n*n*chars.positions as usize*2];
+    let mut context = Context {s: &chars.stovec(&input.s), chars, dp: &mut dp};
     let (mut cbal, mut cost) = (0, 0 as f64);
     let mut n_string: Vec<&Character> = vec![];
     println!("Starting ...");
     for i in 0..n {
         for c in chars.chars.iter().rev() {
-            let effect = chars.conversion_effect(context.s[i], c);
+            let effect = chars.transform_effect(context.s[i], c);
             let nbal = cbal + effect.1;
             let ncost = cost + effect.0;
             if ncost+balancing_cost(&mut context, i+1, nbal) <= input.m as f64 {
@@ -141,15 +146,15 @@ pub fn process(input: &TInput, chars: &Characters, include_steps: bool) -> TOutp
     }
     let res: Vec<String> = n_string.iter().map(|x| {x.display.to_string()}).collect();
     let res = res.join("");
-    let steps: Option<Vec<Step>> = None;
+    let mut steps: Option<Vec<Step>> = None;
     if include_steps {
-        chars.string_steps(context.s, &n_string);
+        steps = Some(chars.string_steps(context.s, &n_string));
     }
     TOutput {input: input.to_owned(), s: res, steps, runtime: start_time.elapsed().as_millis()}
 }
 
 impl TOutput {
     pub fn verify(&self, chars: &Characters) -> bool{
-        chars.string_cost(chars.stovec(&self.input.s), chars.stovec(&self.s)) <= self.input.m
+        chars.string_cost(&chars.stovec(&self.input.s), &chars.stovec(&self.s)) <= self.input.m
     }
 }

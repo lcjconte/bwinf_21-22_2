@@ -5,16 +5,28 @@ use rand::thread_rng;
 use rand::Rng;
 use std::fs;
 
-fn generate_testcase(n: usize) -> TInput {
+/*fn generate_solvable(n: usize, k: usize) -> TInput {
+    let nums = vec![0; n];
+    for i in 0..n {
+        nums[i] = thread_rng().genr
+    }
     let chars = vec!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'];
     let mut s: Vec<char> = vec!['0'; n];
     for i in 0..n {
         s[i] = chars[thread_rng().gen_range(0..16)];
     }
     TInput {s: s.iter().collect(), m: thread_rng().gen_range(0..(4.875*n as f64).floor() as u64)} //4.875 = average active segemnts
+}*/
+
+fn generate_random(n: usize, k: usize) -> TInput {
+    let mut nums = vec![0; n];
+    for i in 0..n {
+        nums[i] = thread_rng().gen_range(0..(1_u128 << 127));
+    }
+    TInput {n, k, m: 128, nums }
 }
 
-pub fn run_samples() {
+/*pub fn run_samples() {
     let chars = Characters::read_from(&manifest_plus("chars.json")).unwrap();
     for i in 0..6 {
         let input = TInput::read_from(&workspace_plus(format!("eingaben/Aufgabe3/hexmax{}.txt", i))).unwrap();
@@ -22,9 +34,9 @@ pub fn run_samples() {
         assert!(output.verify(&chars));
         fs::write(manifest_plus(format!("ausgaben/ausgabe{}.txt", i)), format!("{}", output)).unwrap();
     }
-}
+}*/
 
-pub fn run_randomized(r: usize, maxn: usize, save_runtimes: bool) {
+/*pub fn run_randomized(r: usize, maxn: usize, save_runtimes: bool) {
     let chars = Characters::read_from(&manifest_plus("chars.json")).unwrap();
     let mut times: Vec<(usize, u128)> = vec![];
     for _ in 0..r {
@@ -43,8 +55,8 @@ pub fn run_randomized(r: usize, maxn: usize, save_runtimes: bool) {
         let wstring = wstring.join("\n");
         fs::write(&manifest_plus("benchmarks/runtimes1.txt"), wstring).unwrap();
     }
-}
-
+}*/
+/* 
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,3 +70,4 @@ mod tests {
         run_samples();
     }
 }
+*/

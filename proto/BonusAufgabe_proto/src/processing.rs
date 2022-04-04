@@ -19,7 +19,6 @@ struct Tuning {
 // TODO: 
 //Measure tuning costs
 //Documentation !!
-//Python?
 
 /// Processing params and constraints
 #[derive(Clone, Default)]
@@ -188,7 +187,7 @@ impl ISolver<'_> for Solver {
         self.nums = Arc::new(input.nums.clone());
         //self.nums.sort();
         let n = self.nums.len();
-        let k = (input.k+1) as usize;
+        let k = input.k+1;
         self.calcu = CalcUnit::default();
         self.calcu.cost_dp_params = CalcParams {s_limit: 1e8 as usize, recursive: true, max_jobs: 4};
         let res = self.explore(Segment(0, n), k, 0);
@@ -212,6 +211,10 @@ impl ISolver<'_> for Solver {
         }
     }
 }
+fn call_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block: Segment, shift: usize, window: Segment, cur: Combination) {
+    let w = block.1-block.0;
+}
+
 /// Calls func on all combinations of length k in the window
 /// The combination space can be shifted FIXME: URGENT!!!
 fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block: Segment, shift: usize, window: Segment, cur: Combination) {
@@ -230,7 +233,7 @@ fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block:
         enum_combs(nums, k-1, func, Segment(i+1, block.1), shift, window, cur.add(nums[num_idx], num_idx));
     }
 }
-// TODO: Clean up partitioning (Samrt partitioning or not?)
+// TODO: Clean up partitioning (Smart partitioning or not?)
 
 /// Search on limited segment of nums with specific distribution of k
 fn search_single_lr<T: CombStore>(nums: &[u128], segment: Segment, l: usize, r: usize, target: u128, store: &mut T) -> SearchRes {

@@ -3,7 +3,7 @@ use Aufgabe3::io::*;
 
 fn main() {
     let chars = Characters::read_from(&manifest_plus("chars.json")).unwrap();
-    let input = TInput::read_from(&manifest_plus(format!("eingaben/Aufgabe3/hexmax{}.txt", 0))).unwrap();
+    let input = TInput::read_from(&workspace_plus(format!("eingaben/Aufgabe3/hexmax{}.txt", 0))).unwrap();
     let output = process(&input, &chars, true);
     println!("Processed!");
     println!("Valid: {:?}", output.verify(&chars));

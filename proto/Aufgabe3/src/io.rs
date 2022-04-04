@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::fs::File;
 use std::error::Error;
 use std::io::{BufReader, Read, BufRead};
@@ -10,6 +11,11 @@ pub fn manifest_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     d.push(plus);
     d
+}
+/// Returns workspace path plus argument
+pub fn workspace_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
+    let d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.join("..").join("..").join(plus)
 }
 
 #[derive(Clone)]
@@ -32,8 +38,11 @@ impl TInput {
         Ok(obj)
     }
 }
+/// Single segment movement
 pub struct Step {
+    /// (character idx, segment idx)
     pub from: (usize, usize),
+    /// (character idx, segment idx)
     pub to: (usize, usize),
     pub result: Vec<u32>,
 }
@@ -44,7 +53,22 @@ pub struct TOutput {
     /// Processing runtime in ms
     pub runtime: u128,
 }
-#[derive(Clone)]
+
+impl fmt::Display for TOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        //self.nums.sort();
+        writeln!(f, "{}", self.s)?;
+        writeln!(f, "{}", self.runtime)?;
+        if let Some(ref v) = self.steps {
+            for step in v {
+                writeln!(f, "{:?} {:?} {}", step.from, step.to, step.result.iter().map(|x| {x.to_string()}).collect::<Vec<String>>().join(" "))?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Character {
     pub bits: u32,
     pub display: String,
@@ -52,7 +76,9 @@ pub struct Character {
 pub struct Characters {
     pub positions: i64,
     pub chars: Vec<Character>,
+    /// ascii char to object
     pub from_disp: HashMap<String, Character>,
+    /// segment representation to object
     pub from_bits: HashMap<u32, Character>
 }
 

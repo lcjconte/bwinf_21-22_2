@@ -14,6 +14,11 @@ pub fn manifest_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
     d.push(plus);
     d
 }
+/// Returns workspace path plus argument
+pub fn workspace_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
+    let d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.join("..").join("..").join(plus)
+}
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where P: AsRef<Path>, {
@@ -23,9 +28,9 @@ where P: AsRef<Path>, {
 
 #[derive(Clone, Default)]
 pub struct TInput {
-    pub n: i32,
-    pub k: i32,
-    pub m: i32,
+    pub n: usize,
+    pub k: usize,
+    pub m: usize,
     pub nums: Vec<u128>,
 }
 impl TInput {
