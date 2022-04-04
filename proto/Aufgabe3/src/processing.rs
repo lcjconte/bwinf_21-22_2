@@ -1,6 +1,7 @@
 use super::io::*;
 use std::f64::INFINITY;
 use std::cmp::{min, max};
+use std::slice::Iter;
 use std::time::Instant;
 
 fn get_bit(a: u32, idx: usize) -> bool {
@@ -74,15 +75,15 @@ impl Characters {
                     take_here.push(idx);
                 }
             }
-            while !insert_here.is_empty() && !take_here.is_empty() {
-                let from = take_here.pop().unwrap();
-                let to = insert_here.pop().unwrap();
-                set_bit(&mut a[from.0], from.1, 0);
-                set_bit(&mut b[to.0], to.1, 1);
-                v.push(Step {from, to, result: a.clone()});
-            }
             idx.1 += 1;
             if idx.1 == self.positions as usize {
+                while !insert_here.is_empty() && !take_here.is_empty() {  // Assign pairs only after having visited all segments of character
+                    let from = take_here.pop().unwrap();
+                    let to = insert_here.pop().unwrap();
+                    set_bit(&mut a[from.0], from.1, 0);
+                    set_bit(&mut a[to.0], to.1, 1);
+                    v.push(Step {from, to, result: a.clone()});
+                }
                 idx.0 += 1;
                 idx.1 = 0;
             }
@@ -104,22 +105,22 @@ impl<'a> Context<'a> {
 }
 
 /// Cost to balance suffix
-fn balancing_cost(ctx: &mut Context, k: usize, bal: i64) -> f64 {
-    if k == ctx.s.len() {
+fn balancing_cost(ctx: &mut Context, i: usize, bal: i64) -> f64 {
+    if i == ctx.s.len() {
         if bal==0 {
             return 0.0;
         }
         return INFINITY;
     }
-    if *ctx.get_dp(k, bal) != -1.0 {
-        return *ctx.get_dp(k, bal);
+    if *ctx.get_dp(i, bal) != -1.0 {
+        return *ctx.get_dp(i, bal);
     }
     let mut cmin: f64 = INFINITY;
     for c in ctx.chars.chars.iter().rev() {
-        let effect = ctx.chars.transform_effect(ctx.s[k], c);
-        cmin = f64::min(cmin, balancing_cost(ctx, k+1, bal+effect.1)+effect.0);
+        let effect = ctx.chars.transform_effect(ctx.s[i], c);
+        cmin = f64::min(cmin, balancing_cost(ctx, i+1, bal+effect.1)+effect.0);
     }
-    *ctx.get_dp(k, bal) = cmin;
+    *ctx.get_dp(i, bal) = cmin;
     cmin
 }
 
@@ -130,9 +131,8 @@ pub fn process(input: &TInput, chars: &Characters, include_steps: bool) -> TOutp
     let mut context = Context {s: &chars.stovec(&input.s), chars, dp: &mut dp};
     let (mut cbal, mut cost) = (0, 0 as f64);
     let mut n_string: Vec<&Character> = vec![];
-    println!("Starting ...");
     for i in 0..n {
-        for c in chars.chars.iter().rev() {
+        for c in chars.chars.iter().rev() { //Reverse to iterate in descending order
             let effect = chars.transform_effect(context.s[i], c);
             let nbal = cbal + effect.1;
             let ncost = cost + effect.0;
@@ -150,10 +150,11 @@ pub fn process(input: &TInput, chars: &Characters, include_steps: bool) -> TOutp
     if include_steps {
         steps = Some(chars.string_steps(context.s, &n_string));
     }
-    TOutput {input: input.to_owned(), s: res, steps, runtime: start_time.elapsed().as_millis()}
+    TOutput {input: input.to_owned(), s: res, initial: context.s.iter().map(|x| {x.bits}).collect(), steps, runtime: start_time.elapsed().as_millis()}
 }
 
 impl TOutput {
+    /// Verifies s
     pub fn verify(&self, chars: &Characters) -> bool{
         chars.string_cost(&chars.stovec(&self.input.s), &chars.stovec(&self.s)) <= self.input.m
     }

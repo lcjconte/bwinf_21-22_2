@@ -17,9 +17,11 @@ fn generate_testcase(n: usize) -> TInput {
 pub fn run_samples() {
     let chars = Characters::read_from(&manifest_plus("chars.json")).unwrap();
     for i in 0..6 {
+        println!("Running hexmax{}.txt", i);
         let input = TInput::read_from(&workspace_plus(format!("eingaben/Aufgabe3/hexmax{}.txt", i))).unwrap();
         let output = process(&input, &chars, i < 3);
         assert!(output.verify(&chars));
+        println!("Took {}ms", output.runtime);
         fs::write(manifest_plus(format!("ausgaben/ausgabe{}.txt", i)), format!("{}", output)).unwrap();
     }
 }

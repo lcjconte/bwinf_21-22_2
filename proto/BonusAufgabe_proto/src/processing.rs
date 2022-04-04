@@ -18,18 +18,17 @@ struct Tuning {
 }
 // TODO: 
 //Measure tuning costs
-//Documentation !!
 
 /// Processing params and constraints
 #[derive(Clone, Default)]
-pub struct CalcParams {
-    s_limit: usize,
-    recursive: bool,
-    max_jobs: usize
+pub struct Constraints {
+    pub s_limit: usize,
+    pub recursive: bool,
+    pub max_jobs: usize
 } 
-impl CalcParams {
-    pub fn new(size_limit: usize, recursive: bool, max_jobs: usize) -> CalcParams{
-        let obj = CalcParams {s_limit: size_limit, recursive, max_jobs};
+impl Constraints {
+    pub fn new(size_limit: usize, recursive: bool, max_jobs: usize) -> Constraints {
+        let obj = Constraints {s_limit: size_limit, recursive, max_jobs};
         assert!(obj.valid());
         obj
     }
@@ -44,7 +43,7 @@ pub struct CalcUnit {
     pascal: DParray<u128>,
     binom_sum: DParray<u128>,
     cost_dp: RefCell<DParray<(u128, bool)>>,
-    cost_dp_params: CalcParams, 
+    cost_dp_params: Constraints, 
 }
 impl Default for CalcUnit {
     fn default() -> Self {
@@ -53,7 +52,7 @@ impl Default for CalcUnit {
             pascal: DParray::new(0, MAXN, MAXK, 1),
             binom_sum: DParray::new(0, MAXN, MAXK, 1),
             cost_dp: RefCell::new(DParray::new((0, false), MAXN, MAXK, 1)),
-            cost_dp_params: CalcParams::default(),
+            cost_dp_params: Constraints::default(),
         };
         unit.init();
         unit
@@ -89,16 +88,16 @@ impl CalcUnit {
     }
     pub fn binom_sum(&self, n: usize, k: usize) -> u128 {
         assert!(n <= MAXN && k <= MAXK);
-        self.binom_sum.get2(n, k)
+        self.binom_sum.get2(n, k.min(n-k))
     }
     /// bool is false if not enough space is available
     pub fn shift_search_cost(&self, n: usize, k: usize) -> (u128, bool) {
         assert!(self.cost_dp_params.valid(), "Unit not properly initialized");
-        let CalcParams { s_limit: space_limit, recursive: _, max_jobs } = self.cost_dp_params;
+        let Constraints { s_limit: space_limit, recursive: _, max_jobs } = self.cost_dp_params;
         let mut usable_jobs = space_limit / self.binom(n/2, k/2) as usize;
         usable_jobs = usable_jobs.min(max_jobs);
         if usable_jobs > 0 {
-            ((n as u128*self.binom_sum(n/2, k/2))/usable_jobs as u128, true)
+            ((n as u128*self.binom_sum(n/2, k/2) * (2 + 1))/usable_jobs as u128, true)
         } else {
             (u128::MAX, false)
         }
@@ -116,7 +115,7 @@ impl CalcUnit {
     /// Cost of single lr search iteration for given l and r
     pub fn lr_single_cost(&self, n: usize, l: usize, r: usize) -> (u128, usize) {
         assert!(self.cost_dp_params.valid(), "Unit not properly initialized");
-        let CalcParams { s_limit: space_limit, recursive, max_jobs: _ } = self.cost_dp_params;
+        let Constraints { s_limit: space_limit, recursive, max_jobs: _ } = self.cost_dp_params;
         let blocks = split_segment_simple(Segment(0,  n));
         let pass = assign_k_simple(blocks, l, r);
         let it_n = pass.it.0.1-pass.it.0.0;
@@ -148,69 +147,74 @@ impl CalcUnit {
         cres
     }
 }
-
-struct ItCaPass {
+/// One pass over described search space
+struct OnePass {
+    /// Iterated half
     it: (Segment, usize),
+    /// Memorized half
     ca: (Segment, usize),
-
 }
-//Splits segment in half
+
+/// Splits segment in half (usable in both searches)
 fn split_segment_simple(segment: Segment) -> Vec<Segment>{
     let sl = ((segment.1-segment.0) as f64 / 2.0).ceil() as usize;
     vec![Segment(segment.0, segment.0+sl), Segment(segment.0+sl, segment.1)]
 }
+/// Splits segemnt along 0/1 msb (usable only in lr)
+fn split_segment_smart(segment: Segment) -> Vec<Segment> {
+    todo!()
+}
 // Missing
-fn assign_k_simple(blocks: Vec<Segment>, l: usize, r: usize) -> ItCaPass {
-    let mut obj = ItCaPass { it: (blocks[0], l), ca: (blocks[1], r) };
+fn assign_k_simple(blocks: Vec<Segment>, l: usize, r: usize) -> OnePass {
+    let mut obj = OnePass { it: (blocks[0], l), ca: (blocks[1], r) };
     if r > l {
         swap(&mut obj.it, &mut obj.ca);
     }
     obj
 }
-/// Contains search functions
+/// Contains everything necessary for a search
 pub struct Solver {
-    nums: Arc<Vec<u128>>,
-    calcu: CalcUnit,
+    pub nums: Arc<Vec<u128>>,
+    pub calcu: CalcUnit,
 }
 
-impl ISolver<'_> for Solver {
-    fn new() -> Solver {
+pub fn process(input: &TInput, constraints: &Constraints) -> Option<TOutput> {
+    println!("Started processing ...");
+    let start_time = Instant::now();
+    let mut solver = Solver::new();
+    solver.nums = Arc::new(input.nums.clone());
+    //self.nums.sort(); //Needed for smart split
+    let n = solver.nums.len();
+    let k = input.k+1;
+    solver.calcu = CalcUnit::default();
+    solver.calcu.cost_dp_params = constraints.clone();
+    let res = solver.search(Segment(0, n), k, 0);
+    if let Some(c) = res {
+        println!("Found!");
+        let mut v: Vec<u128> = vec![];
+        for i in 0..n {
+            if c.1.get(i) {
+                v.push(solver.nums[i]);
+            }
+        }
+        let output = TOutput {input: input.clone(), nums: v, runtime: start_time.elapsed().as_millis()};
+        assert!(output.verify());
+        Some(output)
+    }
+    else {
+        None
+    }
+}
+
+impl Solver {
+    pub fn new() -> Solver {
         Solver {
             nums: Arc::new(vec![]),
             calcu: CalcUnit::default(),
         }
     }
-    /// Process input. Resets internal state
-    fn process(&mut self, input: &TInput) -> Option<TOutput> {
-        println!("Processing");
-        let start_time = Instant::now();
-        self.nums = Arc::new(input.nums.clone());
-        //self.nums.sort();
-        let n = self.nums.len();
-        let k = input.k+1;
-        self.calcu = CalcUnit::default();
-        self.calcu.cost_dp_params = CalcParams {s_limit: 1e8 as usize, recursive: true, max_jobs: 4};
-        let res = self.explore(Segment(0, n), k, 0);
-        if let Some(c) = res {
-            println!("Found!");
-            let mut v: Vec<u128> = vec![];
-            for i in 0..n {
-                if c.1.get(i) {
-                    v.push(self.nums[i]);
-                }
-            }
-            println!("{}", v.len());
-            let output = TOutput {nums: v, runtime: start_time.elapsed().as_millis()};
-            println!("{}", output);
-            println!("{}", if output.verify() {"Valid!"} else {"Invalid!"});
-            Some(output)
-        }
-        else {
-            println!("Not found!");
-            None
-        }
-    }
 }
+
 fn call_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block: Segment, shift: usize, window: Segment, cur: Combination) {
     let w = block.1-block.0;
 }
@@ -233,7 +237,6 @@ fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block:
         enum_combs(nums, k-1, func, Segment(i+1, block.1), shift, window, cur.add(nums[num_idx], num_idx));
     }
 }
-// TODO: Clean up partitioning (Smart partitioning or not?)
 
 /// Search on limited segment of nums with specific distribution of k
 fn search_single_lr<T: CombStore>(nums: &[u128], segment: Segment, l: usize, r: usize, target: u128, store: &mut T) -> SearchRes {
@@ -278,7 +281,7 @@ fn search_shift_thread<T: CombStore>(sender: Sender<(SearchRes, T)>, nums: Arc<V
 }
 
 impl Solver {
-    fn explore(&self, segment: Segment, k: usize, target: u128) -> SearchRes {
+    fn search(&self, segment: Segment, k: usize, target: u128) -> SearchRes {
         let action = self.calcu.expected_cost(segment.1-segment.0, k);
         if action.1 {
             self.shift_search(segment, k, target)
@@ -308,7 +311,7 @@ impl Solver {
                 1 => {
                     let mut it_func = |x: Combination| {
                         let compl = x.0 ^ target;
-                        match self.explore(pass.ca.0, pass.ca.1, compl) {
+                        match self.search(pass.ca.0, pass.ca.1, compl) {
                             Some(c) => res = Some(x.combine(&c)),
                             None => ()
                         }
@@ -324,7 +327,7 @@ impl Solver {
         None
     }
     fn shift_search(&self, segment: Segment, k: usize, target: u128) -> SearchRes {
-        let CalcParams { s_limit: cap, recursive: _, max_jobs: jcount } = self.calcu.cost_dp_params;
+        let Constraints { s_limit: cap, recursive: _, max_jobs: jcount } = self.calcu.cost_dp_params;
         type Store = HashMapStore;
         let nums = self.nums.clone();
         let Segment(lo, hi) = segment;
@@ -336,6 +339,7 @@ impl Solver {
         let mut storage: Vec<Store> = vec![Store::new(recap) ;rjcount];
         let mut res: SearchRes = None;
         for s_point in 0..(((n as f64/2.0).floor()+1.0) as usize) {
+            println!("{}", s_point);
             let st: Store;
             if storage.is_empty() {
                 let mres: (SearchRes, Store) = receiver.recv().unwrap();

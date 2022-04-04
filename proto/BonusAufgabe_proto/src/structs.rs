@@ -81,11 +81,6 @@ pub fn get_xor(nums: &[u128], b: &u256) -> u128 {
     d
 }
 
-pub trait ISolver<'a> {
-    fn new() -> Self;
-    fn process(&mut self, t_input: &'a TInput) -> Option<TOutput>;
-}
-
 /// Trait for fast storage and retrieval of combinations
 pub trait CombStore : Clone {
     fn new(size: usize) -> Self;

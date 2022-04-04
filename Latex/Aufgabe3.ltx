@@ -34,6 +34,7 @@
 
 % Für Quelltext
 \usepackage{minted}
+\usepackage{fancyvrb}
 
 % Diese beiden Pakete müssen als letztes geladen werden
 %\usepackage{hyperref} % Anklickbare Links im Dokument
@@ -58,18 +59,18 @@ Gegeben ist ein String $\alpha$ aus $N$ Hexadezimalziffern, wobei jeder Ziffer e
 Der Lösungsidee beruht auf folgender Abstraktion des String-Umformungsvorgangs:
 
 \subsection{Wie man sich die schrittweise Umformung des Strings vorstellen kann}
-Um eine Ziffer in eine andere zu transformieren müssen Segmente umgelegt werden. Dabei gibt es für zwei Ziffern x und y, Segmente die in x sind, wo sie in y nicht mehr sein dürfen, und in y sind, ohne in x zu sein.\\
+Um eine Ziffer in eine andere zu transformieren müssen Segmente umgelegt werden. Dabei gibt es für zwei Ziffern x und y, Segmente, die in x sind, wo sie in y nicht mehr sein dürfen, und Segmente, die in y sind, ohne in x zu sein.\\
 \begin{gather*}
 b_{x\rar y} := (\text{Anzahl der Segmentpositionen, die nur in x belegt sind}, \\ \text{Anzahl der Segmentpositionen, die nur in y belegt sind}) \\
 \implies b_{B\rar D} = (1, 1)
 \end{gather*}
-An dieser Stelle muss hinzugefügt werden, dass die Segmentdarstellung der Ziffern, auch als Binärdarstellung mit 7-bits, gedacht werden kann. Ordnet man die Segmentplätze wie in Abbildung 1, kann jeder Ziffer eine 7 bit Zahl zugeordnet werden.
-$B \rar D$ entspricht dann $0101111 \rar 0011111$ \\
+An dieser Stelle muss hinzugefügt werden, dass die Segmentdarstellung der Ziffern, auch als Binärdarstellung mit 7-bits, gedacht werden kann. Ordnet man die Segmentplätze wie in Abbildung 1 \includegraphics{Ziffer}, kann jeder Ziffer eine 7 bit Zahl zugeordnet werden. 
+$B \rar D$ entspricht dann $0101111 \rar 0011111$ (0 vorne)\\
 Solange die zwei Komponenten von $b_{x \rar y}$ gleich sind, intern also an genauso vielen Positionen Segmente entfernt, wie hinzugefügt werden müssen, kann die Transformation ohne Beachtung des Rest des Strings erfolgen. Sie kostet dann $b_{x \rar y}[0]$ Umlegungen.\\
 Es gibt aber auch Fälle, wie zum Beispiel $b_{2 \rar 7}=(2, 1)$, in denen die Segmentanzahlen der zwei Ziffern nicht gleich sind. Solche Transformationen sind immer noch möglich, da Transformationen mehrerer Ziffern eines Strings sich ausbalancieren können. Beispiel:\\
 $``2F``  \rar  ``C0``$, wobei $b_{2 \rar C} = (3, 1) \text{ und } b_{F \rar 0} = (1, 3)$\\
 Die erste Transformation muss zwei Segmente nach außen abgeben. Sie kann trotzdem stattfinden, da gleichzeitig die zweite Transformation zwei Segmente von außen aufnehmen muss. \\
-Man kann sich für einen Substring $\gamma$ während des Transformationsvorgangs eine zusäzliche Information g, das Gleichgewicht des Strings, vorstellen. Diese ist anfänglich 0, wird jedoch von Transformationen verändert. Was das heißen soll kann man am Beispiel erkennen:
+Man kann sich für einen String $\gamma$ während des Transformationsvorgangs eine zusäzliche Information g, das Gleichgewicht des Strings, bzw. die Differenz an Segmenten zum Originalstring, vorstellen. Dieses ist anfänglich 0, wird jedoch von Transformationen verändert. Was das heißen soll kann man am Beispiel erkennen:
 \begin{align*}
 \gamma =  ``2F`` \quad  g = 0\\
 \xrightarrow{2 \rar C} \gamma = ``CF`` \quad g = 2\\
@@ -89,10 +90,11 @@ Es muss an dieser Stelle hinzugefügt werden, dass das gerade erklärte System m
 Damit ein String nach mehrern Transformationen, die dazu führen, dass $g=0 \land k \leq M$, auch im Sinne der Aufgabenstellung gültig ist muss noch folgendes gezeigt werden.
 
 \subsection{Weshalb eine Ziffer nie komplett leer ist}
-Es soll gezeigt werden, dass es immer möglich ist Strings gleicher Segmentanzahlen umzuformen, ohne dabei eine Ziffer je komplett zu leeren. 
+Wird ein String in einen String mit gleicher Anzahl an Segmenten umgeformt, dann ist diese Umformung möglich ohne, dass je eine Ziffer komplett leer ist. Folgende Umlegungsstrategie sorgt dafür: \\
+In einem ersten Durchgang merkt man sich alle Segmentpositionen die verändert werden müssen, dann verändert man alle gegensätzlichen Paare, also entfernen - hinzufügen, die in der gleichen Ziffer liegen. Nun ist immernoch keine Ziffer leer. Dann löst man alle anderen Paare auf, wobei auch hier eine Ziffer nie leer wird, da die bei der internen Auflösung bewegten Segmente an ihren Positionen bleiben, und die Segmente die überhaupt nicht bewegt werden müssen auch belegt bleiben. 
 
-\subsection{Ansatz}
-Die Lösung wird Ziffer für Ziffer zusammengesetzt. Damit der resultierende String so groß wie möglich ist werden in absteigender Reihenfolge die möglichen bedeutendsten Ziffern getestet. Der allererste Schritt für $\alpha=``D24``$ ist also zu bestimmen, was die minimalen Kosten für $``D24`` \rar ``F``$ sind. Der Suffix ist unbestimmt, da seine lexikographische Größe weniger wichtig als die der bedeutendsten Stelle ist. $D \rar F$ resultiert in g = 1 für den Suffix. Dieser Suffix muss also ausgehend von g=1 "balanciert" werden, also mit minimalen Kosten so umgeformt werden, dass g zu 0 wird. Die minimalen Kosten für die balancierung des Suffixes sein $f(i, g)$ wobei i die bedeutendste Stelle des Suffixes ist und g das Ungleichgewicht. Wenn $k_{D \rar F} + f(1, 1) \leq M$ wäre, könnte man jetzt die 0. Stelle der Lösung auf F festlegen, doch im Beispiel ist das nicht der Fall. Also geht man weiter zu Umformung in die nächstkleinere Ziffer E und so weiter.\\
+\subsection{Finden der größten Hexzahl}
+Der Lösungsstring wird Ziffer für Ziffer zusammengesetzt. Damit der resultierende String so groß wie möglich ist werden in absteigender Reihenfolge die möglichen bedeutendsten Ziffern getestet. Der allererste Schritt für $\alpha=``D24``$ ist also zu bestimmen, was die minimalen Kosten für $``D24`` \rar ``F--``$ sind. Der Suffix ist unbestimmt, da seine lexikographische Größe weniger wichtig als die der bedeutendsten Stelle ist. $D \rar F$ resultiert in g = 1 für den Suffix. Dieser Suffix muss also ausgehend von g=1 "balanciert" werden, also mit minimalen Kosten so umgeformt werden, dass g zu 0 wird. Die minimalen Kosten für die balancierung des Suffixes seien $f(i, g)$ wobei i die bedeutendste Stelle des Suffixes ist und g das Ungleichgewicht. Wenn $k_{D \rar F} + f(1, 1) \leq M$ wäre, könnte man jetzt die 0. Stelle der Lösung auf F festlegen, doch im Beispiel ist das nicht der Fall. Also geht man weiter zu Umformung in die nächstkleinere Ziffer E und so weiter. Hat man die bedeutendste Ziffer bestimmt, geht man zu nächstbedeutendsten über.\\
 Zusammengefasst wird die Lösung also Ziffer für Ziffer, beginnend bei der bedeutendsten Stelle, zusammengesetzt. Ausgehend von den Kosten für die bisherigen Transformationen und dem aus diesen resultierten Ungleichgewicht, wird die aktuelle Stelle in die größtmöglichste Ziffer transformiert. Dass die Kosten am Schluss nicht M übersteigen und dass der resultierende String gleich viele Segmente wie das Original enthält, wird von f garantiert. Da jedesmal die größtemöglichste Ziffer gewählt wird, ist auch das Ergebnis maximal.
 
 \subsection{f(i, g)}
@@ -104,22 +106,99 @@ f(N, g) = \begin{cases}
 f(i, g) = \min{(\infty, \min_{y \in Z}{(k_{x \rar y}+f(i+1, g+g_{x \rar y}))})} \\
 Z\text{ ist die Menge der Ziffern} \quad x\text{ ist die Ziffer im Original}
 \end{gather*}
-Da die Definitionsmenge von f relativ begrenzt ist, kann man mit dynamic programming die Ergebnisse Memoisieren. Der Speicherbedarf ist dann $O(N^2)$ und die Laufzeit $O(N^2 \cdot \abs{Z})$.
+f versucht an jeder Stelle alle möglichen Ziffern einzusetzen, un gibt dann die minimalen Kosten zurück. Da die Definitionsmenge von f relativ begrenzt ist, kann man mit dynamic programming die Ergebnisse memoisieren. Der Speicherbedarf ist dann $O(N^2)$ und die Laufzeit $O(N^2 \cdot \abs{Z})$.
 
-\subsection{Zusammenfassung}
-Für den gesamten Algorithmus ergibt sich somit für das Finden des Lösungsstrings die Laufzeit $O(N^2 \cdot \abs{Z})$
-Hat man einmal den Lösungsstring kann man in linearer Laufzeit die Umlegungsschritte berechnen. 
-
-
-
+\subsection{Zusammenfassung und Laufzeit}
+Für den gesamten Algorithmus ergibt sich somit für das Finden des Lösungsstrings die Laufzeit $O(N \cdot \abs{Z} + N^2 \cdot \abs{Z})$, da die Werte von f gespeichert werden. Für die Hexadezimalziffern ist die Laufzeit also $O(N^2)$.
+Hat man einmal den Lösungsstring kann man mit der in 1.3 vorgestellten Strategie in linearer Laufzeit die Umlegungsschritte berechnen. BILD EINFÜGEN!
 
 \section{Umsetzung}
-Für die Umsetzung wurde Rust verwendet
+Die Umsetzung ist in der Rust geschrieben und beinhaltet die ''serde\underbar json'' und ''rand'' Pakete. \\
+\subsection{I/O}
+Eingabe und Ausgabe Funktionen sind in ''io.rs'' enthalten. Die structs \textit{TInput} und \textit{TOutput} handhaben das Einlesen der Problemstellungen und die Ausgabe der Lösungen. Um verschiedene Ziffersysteme zu erlauben, liest der \emph{Characters} struct die Informationen zu den verfügbaren Ziffern aus einer json Datei. Die ''chars.json'' Datei enthält das verwendete Hexadezimalsystem. In der Datei wird jeder Ziffer ein Bitstring zugewiesen, der die Segmente beschreibt. Während der Verarbeitung werden Objekte der \emph{Character} Klasse verwendet. Diese werden auch von \emph{Characters} bereitgestellt. 
+
+\subsection{Hauptteil}
+Die Verarbeitungslogik befindet sich in ''processing.rs''. Hier wird \emph{Characters} um mehrere wichtige Methoden erweitert. \mint{rust}|pub fn transform_balance(&self, a: &Character, b: &Character) -> (u64, u64)|
+Vergleicht die bitstrings von a und b und entspricht $b_{\textit{a} \rar \textit{b}}$
+\mint{rust}|pub fn transform_effect(&self, a: &Character, b: &Character) -> (f64, i64)|
+Gibt in einem Tupel (Kosten, Gleichgewichtsänderung) einer Transformation zurück.\\
+Während der Verarbeitung werden Strings oft als Vektoren der \textit{Character} Objekte dargestellt und die \textit{stovec} Methode macht diese Konversion. Zuletzt gibt es noch: 
+\mint{rust}|pub fn string_steps(&self, a: &[&Character], b: &[&Character]) -> Vec<Step>|
+Diese Methode iteriert ähnlich wie in 1.3 über die Segmentpositionen und bestimmt so eine gültige Sammlung an Umlegungen, die a in b umformen. Die \textit{Step} Objekte enthalten zwei Segmentpositionen und den Zustand nach der Umformungen als Vektor von Bitmasken. \\
+Die Verarbeitung findet mittels der \textit{process} Funktion statt, die die Eingabe, sowie das Ziffernsystem erhält und den in 1.4 beschriebenen Algorithmus implementiert. Optional kann der Ausgabe am Schluss der Vektor mit den Umlegungen hinzugefügt werden. Der Kern von \textit{process} ist folgender
+\begin{minted}{rust}
+for i in 0..n {
+	for c in chars.chars.iter().rev() { //Reverse to iterate in descending order
+            let effect = chars.transform_effect(context.s[i], c);
+            let nbal = cbal + effect.1;
+            let ncost = cost + effect.0;
+            if ncost+balancing_cost(&mut context, i+1, nbal) <= input.m as f64 {
+                n_string.push(c);
+                cost = ncost;
+                cbal = nbal;
+                break;
+}}}
+\end{minted}
+Die \textit{balancing\textunderscore cost} Funktion entspricht hier $f(i, g)$. Mit \textit{context} erhält sie zusätzlich das dparray und weitere Informationen. Der Kern ist hier:
+\begin{minted}{rust}
+let mut cmin: f64 = INFINITY;
+    for c in ctx.chars.chars.iter().rev() {
+        let effect = ctx.chars.transform_effect(ctx.s[i], c);
+        cmin = f64::min(cmin, balancing_cost(ctx, i+1, bal+effect.1)+effect.0);
+    }
+\end{minted}
+
+\subsection{Verifikation}
+Obwohl das Verfahren theoretisch einwandfrei sein müsste, enthält die Umsetzung mehrere Methoden, die die Korrektheit der Ausgabe überprüfen. Die \textit{string\textunderscore cost} Methode von \textit{Characters} prüft wie viele Umlegungen für die Umformung von einem String in den anderen notwendig sind und, ob die zwei Strings überhaupt gleich viele Segmente besitzen. In der Datei ''testing.rs'' ist neben einer Funktion \mint{rust}|run_samples|, die alle Beispiele der Bwinf-Seite verarbeitet und die Resultate speichert auch eine Funktion \mint{rust}|run_randomized|, die zufällig generierte Eingaben verarbeitet. 
+
+\subsection{Visualisation}
+Das Ausgabe Format ist:\\
+<Lösungsstring>\\
+<Benötigte zeit in ms>\\
+(<von Charakter>, <von Segment>) (<zu Charakter>, <zu Segment>) <Maske erster Ziffer> $\backslash$ \\<Masker zweiter Ziffer> ...\\
+<weiter die Umlegungen beschreibende Zeilen>\\
+Um die Umlegungen zu visualisieren gibt es ein Python script: visu.py
 
 \section{Erweiterungen}
 
+\subsection{Verschiedene Ziffersysteme}
+
+\subsection{Parallelisierung}
+
 \section{Beispiele}
 
-\section{Quellcode}
+\textbf{Beispiel 0}\\
+\underline{Eingabe:}\textit{hexmax0.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../proto/Aufgabe3/ausgaben/ausgabe0.txt}
 
+\textbf{Beispiel 1}\\
+\underline{Eingabe:}\textit{hexmax1.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../proto/Aufgabe3/ausgaben/ausgabe1.txt}
+
+\textbf{Beispiel 2}\\
+\underline{Eingabe:}\textit{hexmax2.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../proto/Aufgabe3/ausgaben/ausgabe2.txt}
+
+\textbf{Beispiel 3}\\
+\underline{Eingabe:}\textit{hexmax3.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../proto/Aufgabe3/ausgaben/ausgabe3.txt}
+
+\textbf{Beispiel 4}\\
+\underline{Eingabe:}\textit{hexmax4.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../proto/Aufgabe3/ausgaben/ausgabe4.txt}
+
+\textbf{Beispiel 5}\\
+\underline{Eingabe:}\textit{hexmax5.txt}\\
+\underline{Ausgabe:}
+%\VerbatimInput{../proto/Aufgabe3/ausgaben/ausgabe5.txt}
+\inputminted[breaklines, breakanywhere]{text}{../proto/Aufgabe3/ausgaben/ausgabe5.txt}
+
+EXTRA BEISPIELE!!e
+\section{Quellcode}
+TODO!
 \end{document}

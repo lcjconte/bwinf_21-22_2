@@ -55,6 +55,7 @@ impl TInput {
 }
 
 pub struct TOutput {
+    pub input: TInput,
     pub nums: Vec<u128>,
     /// Runtime in ms
     pub runtime: u128,

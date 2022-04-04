@@ -8,3 +8,4 @@ Cargo.lock
 *.gz
 *.toc
 _minted**
+frames

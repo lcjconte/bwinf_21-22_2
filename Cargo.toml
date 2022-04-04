@@ -3,5 +3,6 @@
 members = [
     "proto/BonusAufgabe_proto",
     "proto/Aufgabe4",
-    "proto/Aufgabe3"
+    "proto/Aufgabe3",
+    "proto/BonusAufgabe_distributed",
 ]

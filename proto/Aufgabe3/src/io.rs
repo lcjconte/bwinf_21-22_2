@@ -40,8 +40,8 @@ impl TInput {
 }
 /// Single segment movement
 pub struct Step {
-    /// (character idx, segment idx)
-    pub from: (usize, usize),
+    /// (character idx, segment idx) Set character idx to u32::MAX to -1
+    pub from: (usize, usize), 
     /// (character idx, segment idx)
     pub to: (usize, usize),
     pub result: Vec<u32>,
@@ -49,6 +49,8 @@ pub struct Step {
 pub struct TOutput {
     pub input: TInput,
     pub s: String,
+    /// Initial segment config for convenience
+    pub initial: Vec<u32>,
     pub steps: Option<Vec<Step>>,
     /// Processing runtime in ms
     pub runtime: u128,
@@ -56,10 +58,10 @@ pub struct TOutput {
 
 impl fmt::Display for TOutput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        //self.nums.sort();
         writeln!(f, "{}", self.s)?;
         writeln!(f, "{}", self.runtime)?;
         if let Some(ref v) = self.steps {
+            writeln!(f, "{:?} {:?} {}", (-1, -1), (-1, -1), self.initial.iter().map(|x| {x.to_string()}).collect::<Vec<String>>().join(" "))?;
             for step in v {
                 writeln!(f, "{:?} {:?} {}", step.from, step.to, step.result.iter().map(|x| {x.to_string()}).collect::<Vec<String>>().join(" "))?;
             }
