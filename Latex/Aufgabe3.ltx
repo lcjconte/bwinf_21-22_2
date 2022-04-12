@@ -113,7 +113,7 @@ Für den gesamten Algorithmus ergibt sich somit für das Finden des Lösungsstri
 Hat man einmal den Lösungsstring kann man mit der in 1.3 vorgestellten Strategie in linearer Laufzeit die Umlegungsschritte berechnen. BILD EINFÜGEN!
 
 \section{Umsetzung}
-Die Umsetzung ist in der Rust geschrieben und beinhaltet die ''serde\underbar json'' und ''rand'' Pakete. \\
+Die Umsetzung ist in Rust geschrieben und beinhaltet die ''serde\underbar json'' und ''rand'' Pakete. \\
 \subsection{I/O}
 Eingabe und Ausgabe Funktionen sind in ''io.rs'' enthalten. Die structs \textit{TInput} und \textit{TOutput} handhaben das Einlesen der Problemstellungen und die Ausgabe der Lösungen. Um verschiedene Ziffersysteme zu erlauben, liest der \emph{Characters} struct die Informationen zu den verfügbaren Ziffern aus einer json Datei. Die ''chars.json'' Datei enthält das verwendete Hexadezimalsystem. In der Datei wird jeder Ziffer ein Bitstring zugewiesen, der die Segmente beschreibt. Während der Verarbeitung werden Objekte der \emph{Character} Klasse verwendet. Diese werden auch von \emph{Characters} bereitgestellt. 
 

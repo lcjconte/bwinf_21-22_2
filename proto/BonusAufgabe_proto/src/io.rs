@@ -5,7 +5,7 @@ use std::io::{self, BufRead};
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-pub const MAXN: usize = 255;
+pub const MAXN: usize = 256;
 pub const MAXK: usize = 20;
 
 /// Returns manifest path plus argument
@@ -60,15 +60,7 @@ pub struct TOutput {
     /// Runtime in ms
     pub runtime: u128,
 }
-impl TOutput {
-    pub fn verify(&self) -> bool {
-        let mut a = 0;
-        for i in &self.nums {
-            a ^= i;
-        }
-        a == 0
-    }
-}
+
 impl Display for TOutput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         //self.nums.sort();

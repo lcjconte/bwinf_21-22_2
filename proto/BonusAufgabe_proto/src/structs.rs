@@ -2,7 +2,6 @@
 use std::ops::BitOr;
 use std::collections::HashMap;
 use ahash::RandomState;
-use super::io::*;
 
 #[derive(Clone)]
 pub struct DParray<T: Copy>{
@@ -35,7 +34,7 @@ impl<T: Copy> DParray<T> {
 /// A 256 unsigned int with limited functionality
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[allow(non_camel_case_types)]
-pub struct u256(u128, u128);
+pub struct u256(pub u128, pub u128);
 impl u256 {
     /// Sets bit at idx to 1
     pub fn set(&mut self, mut idx: usize) {

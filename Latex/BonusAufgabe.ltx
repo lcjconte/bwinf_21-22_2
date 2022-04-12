@@ -23,6 +23,7 @@
 \usepackage{mathtools}
 \DeclarePairedDelimiter\ceil{\lceil}{\rceil}
 \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+\DeclarePairedDelimiter\abs{\mid}{\mid}
 
 
 % Für Bilder
@@ -53,49 +54,54 @@
 
 \section{Lösungsidee}
 \subsection{Problem a)}
-Gegeben sind N 128-Bit Zahlen $\{a_0,\dots, a_{N-1}\} = Z$, die gegebenen Karten. (Indizes sind 0-basiert) \\
+Gegeben sind N 128-Bit Zahlen $\{a_0,\dots, a_{N-1}\} = W$, die gegebenen Karten. (Indizes sind 0-basiert) \\
 Gesucht sind k Indizes I, sodass $a_{i_0} \oplus \dots \oplus a_{i_{k-2}} = a_{i_{k-1}}$ für $i_j \in I$, die Indizes der Karten, die nicht von den Freunden Zaras hinzugefügt wurden. (k hier ist um eins größer als in der Aufgabenstellung!) \\
 Da $x \oplus x = 0$ und $\oplus$ assoziativ und kommutativ ist gilt:
 \begin{align}
 	a_{i_0} \oplus \dots \oplus a_{i_{k-2}} = a_{i_{k-1}}  \iff
 	a_{i_0} \oplus \dots \oplus a_{i_k-1} = 0
 \end{align}
+Es seien:
+\[ Z := \text{Indizes in } [0;N) \]
+\[\text{Für eine Indexmenge z: } xor(z) := \bigoplus_{x \in z}{a_x}\]
+Es ist also die Menge $I$ gesucht, für die gilt $\abs{I}=k \land xor(I) = 0$
 Das Verfahren zum Finden der Menge I wird abgesehen vom nächsten Block im Rest der Dokumentation erklärt.
 
 \subsection{Problem b)}
 Hat man einmal die Menge I und damit die Schlüssel sowie die Sicherungskarte gefunden, stellt sich die Frage, wie Zara ein Haus ohne mehr als zwei Fehlversuche zu benötigen aufsperren kann. \\
 Dies ist möglich, da die Codewörter aufsteigend sortiert sind. Das einzige Problem ist, dass die Sicherungskarte aufgrund von (1) nicht von den Schlüsseln unterscheidbar ist. Um ein Haus i aufzusperren muss Zara zuerst die i-te der sortierten Karten verwenden. Falls diese nicht passt weiß sie, dass die Sicherungs-Karte im Bereich [0;i) liegt und deshalb alle Indizes ab der Sicherungskarte um eins größer sind als sie seien sollten. Die gesuchte Karte ist dann die (i+1)-te
 
-\subsection{Generelle Definitionen}
-Es sind die 128-Bit Zahlen $a_0,\dots, a_{N-1}$ gegeben. \\
-\[ Z := \text{Indizes in } [0;N) \]
-\[\text{Für eine Indexmenge z: } xor(z) := \bigoplus_{x \in z}{a_x}\]
-
 \subsection{Naive Ansätze}
 Das Problem besitzt eine gewisse Ähnlichkeit zum Subset sum Problem für eine feste Anzahl an Summanden, einziger Unterschied ist, dass bei diesem Problem $\oplus$ statt $+$ verwendet wird. Eine DP-Lösung, wie sie beim Subset sum Problem für kleine Summen möglich wäre kann hier nicht verwendet werden, da die Zahlen im Bereich $[0, 2^{128})$ liegen. \\
 Ein anderer möglicher Ansatz wäre alle k-Kombinationen an Indizes in [0;N) auszuprobieren, doch für N=111 und k=11 gibt es 
-$\binom{n}{k}\approx 4.7 \cdot 10^{14}$ viele Möglichkeiten. Diese alle einzeln auszuprobieren würde zu lange dauern. 
+$\binom{n}{k}\approx 4.7 \cdot 10^{14}$ viele Möglichkeiten. Diese alle einzeln auszuprobieren würde zu lange dauern. Der Ansatz alle Kombinationen zu durchsuchen kann jedoch durch einige Beobachtungen beschleunigt werden.
 
 \subsection{Effizientere Durchquerung des Suchraums durch Hashtable Strukur}
 Die gegebenen Zahlen werden in zwei Hälften L und R geteilt.
 Angenommen folgende Information ist bekannt: l Indizes liegen in L und r Indizes liegen in R
-Eine l-Kombination an Indizes $K_1$ aus der ersten Hälfte ist dann teil der Lösungsmenge, wenn eine korrespondierende r-Kombination an Indizes $K_2$ aus der zweiten Hälfte existiert, so dass: (Zielwert?)
+Eine l-Kombination an Indizes $K_1$ aus der ersten Hälfte ist dann teil eines möglichen I, wenn eine korrespondierende r-Kombination an Indizes $K_2$ aus der zweiten Hälfte existiert, so dass: (Zielwert?)
 \begin{align*}
 xor(K_1) \oplus xor(K_2) = 0  \\
 \implies xor(K_1) = xor(K_2) 
 \end{align*}
 Anstatt für alle $\binom{N/2}{l}$ möglichen $K_1$ jeweils alle $\binom{N/2}{r}$ möglichen $K_2$ auszuprobieren \\(Laufzeit: $O(\binom{N/2}{l} \cdot \binom{N/2}{r})$, \\
-können alle $\binom{N/2}{r}$ möglichen $K_2$ in einer Hashtable gespeichert werden, wo sie mit $xor(K_2)$ als Schlüssel in konstanter Zeit gefunden werden können (Laufzeit: $O(\binom{N/2}{l} + \binom{N/2}{r})$. \\Für r=5 müssen nur $\binom{55}{5} \approx 3.5 \cdot 10^6$ viele Werte gespeichert werden. (Es sei an dieser Stelle angemerkt, dass das Durchsuchen von $\binom{n}{k}$ Kombinationen besser durch $O(\sum_{j=1}^{k} \binom{n}{j})$!!!!(Nur für kleine k) beschrieben wird. Da die Differenz jedoch relevant zur Schätzung der Laufzeit ist wird sie ignoriert.) \\
+können alle $\binom{N/2}{r}$ möglichen $K_2$ in einer Hashtable gespeichert werden, wo sie mit $xor(K_2)$ als Schlüssel in konstanter Zeit gefunden werden können (Laufzeit: $O(\binom{N/2}{l} + \binom{N/2}{r})$. \\Für r=5 müssen nur $\binom{55}{5} \approx 3.5 \cdot 10^6$ viele Werte gespeichert werden. (Es sei an dieser Stelle angemerkt, dass das Durchsuchen von $\binom{n}{k}$ Kombinationen für $k \leq \frac{n}{2}$ besser durch $O(\sum_{j=1}^{k} \binom{n}{j})$ beschrieben wird. Da die Differenz jedoch nicht relevant zur Schätzung der Laufzeit ist wird sie ignoriert.) \\
 Das Problem ist nun aber, dass l und r nicht bekannt sind. Zur Lösung gibt es zwei Ansätze
 
 \subsection{Ansatz 1: Alle möglichen Paare l, r ausprobieren}
 Da es für k=11 nur 11 mögliche Paare (l, r) gibt wäre es denkbar all diese Paare auszuprobieren. Eine Hürde stellen die Extremfälle dar, in denen zum Beispiel l=0 ist. Dann gibt es nämlich $\binom{55}{11} \approx 1.2 \cdot 10^{11}$ Kombinationen rechts. Zwei Optimierungen werden benötigt: 
-\begin{enumerate}
-  \item Es sollen wenn überhaupt immer die Kombinationen der Hälfte mit weniger Kombinationen in der Hashtable gespeichert werden. So wird der benötigte Speicher reduziert, die Laufzeit bleibt gleich.
-  \item Falls die Anzahl an Kombinationen zu groß ist um komplett durchgegangen zu werden, soll der Suchalgorithmus für jede Kombination der geringeren Hälfte rekursiv auf die größere Hälfte angewandt werden. \\
-  Im Falle l=0 würde der Vorgang also einmal rekursiv auf die rechte Hälfte angewandt werden.
-\end{enumerate}
+\subsubsection{Kostenschätzfunktion und Rekursion}
+ Falls die Anzahl an Kombinationen für ein (l, r) zu groß ist um komplett durchgegangen zu werden, soll der Suchalgorithmus für jede Kombination der geringeren Hälfte rekursiv auf die größere Hälfte angewandt werden. Das heißt, dass im Falle l=0  der Vorgang also einmal rekursiv auf die rechte Hälfte angewandt wird.
+
+Um zu wissen wann es für ein für eine Bereichsgröße n und ein Paar l, r besser ist die Suche sofort mittels Hashtable auszuführen oder stattdessen mit erneuter Rekursion die Suche zu beschleunigen, werden die Funktionen $es(n, k)$, die Anzahl der benötigten Schritte für eine Problemstellung mit n Zahlen und k gesuchten Indizes und $si(n, l, r)$, die Anzahl der benötigten Schritee für ein bestimmtes $(l, r)$, benötigt.
+\begin{gather*}
+es(n, k) = \sum_{(l, r)}{si(n, l, r)}\\
+si(n, l, r) = \min{(\binom{n/2}{l}^\Sigma + \binom{n/2}{r}^\Sigma, \quad \binom{n/2}{l}^\Sigma \cdot es(\frac{n}{2}, r))} \quad \text{, wobei }\binom{n}{k}^\Sigma = \sum_{j=1}^{k} \binom{n}{j} \text{ und } k \leq \frac{n}{2}
+\end{gather*}
+si soll minimiert werden. In der oben gezeigten Formel ist das 1. Argument von $\min$ die Schrittzahl für eine ''lokale'' Suche und das 2. Argument die Schrittzahl der Rekursion. Um $es$ während der Verarbeitung effizient zu berechen können Ergebnisse gespeichert, was in einer Laufzeit $O(N^2)$ (für $es$) resultiert. 
+
 Der gerade genannte Ansatz ist in der Praxis mit bestimmten Optimierungen schnell genug um das Beispiel mit n=111 und k=11 in ca. 13 Minuten zu lösen. Jedoch ist er zu langsam für die größeren Beispiele, schwer zu parallelisieren und unschön.
+Eine mögliche Optimierung ist die Zahlen zuerst zu sortieren.
 
 \subsection{Ansatz 2: Verschieben der Hälften}
 Es sind die Paare (l, r) am aufwendigsten, bei denen l und r weit auseinander liegen: 
@@ -108,55 +114,96 @@ Wie werden die Hälften zusammengesetzt und ist garantiert, dass alle Kombinatio
 Die Hälften kann man sich als zusammenhängende Bereiche vorstellen, die bei jeder Iteration verschoben werden.
 Beispiel für n=8:
 \begin{itemize}
-\item s=0: ****----
-\item s=1 -****---
-\item s=2 --****--
-\item s=3 ---****-
-\item s=4 ----****
+\item s=0: ****....
+\item s=1 .****...
+\item s=2 ..****..
+\item s=3 ...****.
+\item s=4 ....****
 \end{itemize} 
 Allgemein entsprechen bei der Iteration s: \\
-Die erste Hälfte $L_s$ := $[s;\ceil{N/2}+s)$ \\
-Die Zweite Hälfte $R_s$ := $Z\backslash L_s$ \\
-Die Zweite Hälfte \\$[(\ceil{N/2}+s) \mod N;(N+s) \mod N) := [0;N+s \mod N) \cup [(\ceil{N/2}+s \mod (N+1);N)$ \\
+Die erste Hälfte $L_s$ := $[s;s+\ceil{N/2})$ \\
+Die Zweite Hälfte $R_s$ := $Z \setminus L_s$ \\
 Bild?\\
-\textbf{Hilfssatz: Für jede k-Kombination aus Z existiert mindestens ein $0 <= s <= \ceil{\frac{n}{2}}$ , so dass $\ceil{\frac{k}{2}}$ der Elemente der k-Kombination in $L_s$ sind}( und $\floor{\frac{k}{2}}$ in $R_s$. \\
+\textbf{Hilfssatz: Für jede k-Kombination aus Z existiert mindestens ein $0 <= s <= \floor{\frac{n}{2}}$ , so dass $\ceil{\frac{k}{2}}$ der Elemente der k-Kombination in $L_s$ sind} und daraus folgend $\floor{\frac{k}{2}}$ in $R_s$. \\
 Aus dem Hilfssatz folgt die Korrektheit des Verfahrens, da dann jede k-Kombination bei mindestens einer Iteration in Betracht gezogen wird. Die Laufzeit des zweiten Verfahrens ist ca. $O(N*\binom{N/2}{k/2})$
 \subsubsection{Beweis des Hilfssatzes}
 Um denn Satz zu beweisen, reicht es zu zeigen, dass für eine beliebige k-Kombination C ein s gefunden werden kann, dass die erwartete Bedingung erfüllt. \\
-$x_s$ sei die Anzahl der Kombinationselemente in der ersten Hälfte: $x_s := \mid K \cap L_s \mid$\\
-$y_s$ sei die Anzahl der Kombinationselemente in der zweiten Hälfte $y_s = k - x_s$ \\
-Zentral für den Beweis ist folgende Beobachtung über die Veränderung von $x_s$ bei Änderung von s:\\
+$z_s$ sei die Anzahl der Kombinationselemente in der ersten Hälfte: $z_s := \abs{ K \cap L_s }$\\
+$x := z_0$\\
+$y := z_{\ceil{\frac{n}{2}}}$\\
+Zentral für den Beweis ist folgende Beobachtung über die Veränderung von $z_s$ bei Änderung von s:\\
 \begin{equation}
-\mid x_{s+1}-x_s \mid = 
+\abs{ z_{s+1}-z_s } = 
 \begin{cases}
 1\\
 0
 \end{cases}
 \end{equation}
 Dies ergibt sich daraus, dass bei einer "Verschiebung" von $L_s$ maximal ein Element entfernt werden muss und maximal eines hinzugefügt werden muss.
-Um den Satz zu beweisen muss nun gezeigt werden, dass $\ceil{k/2}$ zwischen inklusiv $x_0$ und $x_{\floor{n/2}}$ liegt. \\
-$u := \begin{cases}
+
+Um den Satz zu beweisen muss nun gezeigt werden, dass: 
+\begin{equation}\ceil{\frac{k}{2}} \text{ zwischen inklusiv $x$ und $y$ liegt.} \end{equation}
+Der Beweis wird nur für $x \leq y$ geführt, kann jedoch symmetrisch (mann muss x mit y tauschen) auch für $y \leq x$ geführt werden.
+\begin{equation*}
+u := \begin{cases}
 1, \text{falls n ungerade ist und für das mittlere immer in $L_s$ enthaltene Element gilt}\floor{n/2} \in C \\
-0, \text{in allen anderen Fällen }\end{cases}$ \\
-$(x_0 = a+u) \text{ wird nach $\floor{n/2}+1$ Iterationen zu } (x_{\floor{n/2}} = b+u)$ \\
+0, \text{in allen anderen Fällen }\end{cases} 
+\end{equation*}
+$x = a+u$\\ 
+$y = b+u$ \\
 $a+u+b = k$\\
-$\ceil{k/2}$ zwischen inklusiv $x_0$ und $x_{\floor{n/2}}$ entspricht also \\
-$\ceil{\frac{a+u+b}{2}}$ zwischen inklusiv $a+u$ und $b+u$
+\begin{gather*}
+x \leq \ceil{\frac{k}{2}} \leq y \implies \\
+a+u \leq \ceil{\frac{a+u+b}{2}} \leq b+u 
+\end{gather*}
 Es wird zwischen u=0 und u=1 unterschieden:\\
-Im ersten Fall gilt: $\ceil{\frac{a+b}{2}}$ zwischen inklusiv $a$ und $b$, da der Durchschnitt immer zwischen seinen zwei Teilen liegt.\\
+Im ersten Fall gilt: $a \leq \ceil{\frac{a+b}{2}} \leq b$, da der Durchschnitt immer zwischen seinen zwei Teilen liegt.\\
 Im zweiten Fall muss zwischen $(a+b) \mid 2$ und $(a+b) \nmid 2$ unterschieden werden. \\
 Falls $(a+b) \mid 2$ gilt $\ceil{\frac{a+b+1}{2}}$ = $\frac{a+b}{2}+1$.\\
-Das $\frac{a+b}{2}+1$ zwischen a+1 und b+1 wird bereits im ersten Fall gezeigt.
-Falls $(a+b) \nmid 2$ wird zuerst angenommen, dass $a <= b$. Was folgt gilt auch für $b > a$, da a und b umtauschbar sind.\\ $(\ceil{\frac{a+b+1}{2}} = \frac{a+b}{2}+\frac{1}{2}$ \\ $\frac{a+b}{2}+\frac{1}{2}$ ist kleinergleich b+1, da $a<b$.\\
-a+1 ist kleinergleich $\frac{a+b}{2}+\frac{1}{2}$, da der einzige Fall in dem das nicht so wäre a=b fordert und dies $(a+b) \nmid 2$ wiederspricht.
-\\
+Das $ a+1 \leq \frac{a+b}{2}+1 \leq b+1$ wird bereits im ersten Fall gezeigt.\\
+Falls $(a+b) \nmid 2$:\\
+\begin{gather*}
+\ceil{\frac{a+b+1}{2}} = \frac{a+b}{2}+\frac{1}{2}\\
+\frac{a+b}{2}+\frac{1}{2} \leq \text{b+1, da $a<b$}\\
+a+1\leq \frac{a+b}{2}+\frac{1}{2},\\ \text{da der einzige Fall in dem das nicht so wäre a=b fordert und dies $(a+b) \nmid 2$ wiederspricht.}
+\end{gather*}
+
 \subsection{Das komplette Verfahren}
-Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel bis auf 4 einigermaßen schnell zu lösen. Um alle Beispiele zu lösen bietet sich eine Kombination beider Ansätze an, die es erlaubt mehr Arbeit zu parallelisieren. Ein Flaschenhals bei der Parallelisation, wird sich in der Umsetzung herausstellen, ist Ram. Um alle 8 Kerne eines CPUs auszunutzen muss die Fragestellung erst mithilfe des 1. Ansatzes in kleinere Probleme geteilt werden, welche dann mit dem 2. Ansatz effizient parallel gelöst werden können. Mit diesem kombinierten Ansatz kann auch das schwierigste Beispiel in weniger als einer halben Stunde gelöst werden.
+Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel einigermaßen schnel zu lösen. Je größer die Eingabe wird, desto größer wird auch die Größe der verwendeten Hashtabellen und benötigten Rams. 16 GB reichen aus um für beispiel4 8 Kerne parallel zu verwenden und das Beispiel in weniger als einer halben Stunde zu lösen. Es wäre denkbar für noch größerere Eingaben Ansatz 1 und 2 zu kombinieren, um den Speicherbedarf unter Kontrolle zu behalten.
 
 
 \section{Umsetzung}
-Für die Umsetzung wurde Rust verwendet\\
-TODO: 
+Die Umsetzung ist in Rust geschrieben und verwendet die ''rand'' und ''ahash'' Pakete. Mehr zum letzteren Packet unter 2.2
+
+\subsection{I/O}
+Die Eingabe und Ausgabe findet über die structs \textit{TInput} und \textit{TOutput} statt, die sich beide in ''io.rs'' befinden. 
+In dieser Datei sind auch die Obergrenzen festgelegt: $N \leq 255$ und $k \leq 20$. 
+
+\subsection{Strukturen}
+Die Implementierung verwendet ausschließlich 128 Bit Zahlen als Darstellung der Schlüsselkarten, da keine der Beispielsangaben größere Zahlen verlangt und flexibel große Zahlen die Verarbeitung nicht entscheidend beschleunigen würden. Trotzdem enthält die Datei, ''structs.rs'', die verschiedene nützliche Strukturen enthält, auch eine sehr einfache Implementierung einer 256-Bit Zahl: \textit{u256}. Benutzt wird diese Zahl von dem struct \textit{Combination}. Dieses struct enthält für eine Kombination deren $xor$ Wert, sowie die Elemente der Kombination als 256-Bit Bitmaske. \textit{Combination} können mittels \textit{add} weitere Elemente hinzugefügt werden und mit \textit{combine} können zwei Objekte kombiniert werden. 
+
+Die Kombinationen werden in einer nativen \textit{Hashmap<u128, u256>} gespeichert, welche die $xor$ Werte als Schlüssel hat und die Kombinationsmasken als Wert. Die Hashmap ist in hinter dem struct \textit{HashMapStore} versteckt welches über die Implementierung des folgenden Interfaces benutzt wird
+\begin{minted}{rust}
+pub trait CombStore : Clone {
+    fn new(size: usize) -> Self;
+    fn insert(&mut self, k: u128, v: u256);
+    fn get(&mut self, k: u128) -> Option<u256>;
+    fn clear(&mut self);
+}
+\end{minted}
+Statt Hashmaps könnten auch B-Bäume oder sortierte Arrays benutzt werden, aber diese haben sich als langsamer erwiesen. 
+
+Wenn die Zahlen nur 64-Bit hätten müsste man sie überhaupt nicht hashen und auch für 128-Bit Zahlen könnte man eine Hashfunktion benutzen, die sie nur Modulo $2^{64}$ nimmt. Die von dem ''ahash'' Paket bereitgestellte Hashfunktion ist leicht schneller als die gerade eben genante Methode, stellt aber ansonsten keine bedeutende Beschleunigung dar. 
+
+Um die effiziente Berechnung von dp Werte zu erlauben, enthält ''structs'' noch \textit{DPArray}, ein bis zu 3-dimensionales Array. Dieses wird zum Beispiel von \textit{BinomC}, einem struct aus ''math.rs'', welches den Binomialkoeffizienten berechnet, verwendet.
+
+\subsection{Verarbeitung}
+
+
+
+\subsection{Verifikation}
+Zufällige Menge an Zahlen unwahrscheinlich 
+
 \section{Erweiterungen}
 
 \subsection{Verteilung des Rechenaufwands auf mehrere Computer}

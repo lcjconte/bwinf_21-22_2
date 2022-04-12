@@ -8,8 +8,8 @@
         "type": "lldb",
         "request": "launch",
         "name": "Launch",
-        "program": "target/debug/aufgabe3",
-        "args": [],
+        "program": "target/debug/client",
+        "args": ["http://127.0.0.1:3000", "2", "10"],
         "cwd": "${workspaceFolder}",
         "preLaunchTask": "rust: cargo build"
     },
