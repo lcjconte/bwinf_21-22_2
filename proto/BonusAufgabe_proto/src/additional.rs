@@ -44,7 +44,7 @@ impl CalcUnit {
     /// Cost of single lr search iteration for given l and r
     pub fn lr_single_cost(&self, n: usize, l: usize, r: usize) -> (u128, usize) {
         assert!(self.cost_dp_params.valid(), "Unit not properly initialized");
-        let Constraints { s_limit: space_limit, recursive, max_jobs: _ } = self.cost_dp_params;
+        let Constraints { s_limit: space_limit, max_jobs: _ } = self.cost_dp_params;
         let blocks = split_segment_simple(Segment(0,  n));
         let pass = assign_k_simple(blocks, l, r);
         let it_n = pass.it.0.1-pass.it.0.0;
@@ -56,9 +56,7 @@ impl CalcUnit {
         if space_cost <= space_limit as u128 {
             mres = mres.min((it_cost+ca_cost, 0));
         }
-        if recursive {
-            mres = mres.min((/*Call cost */ it_cost * self.expected_cost(ca_n, pass.ca.1).0, 1));
-        }
+        mres = mres.min((/*Call cost */ it_cost * self.expected_cost(ca_n, pass.ca.1).0, 1));
         //mres = mres.min((it_tcost*alt_tcost, i, 2));
         mres
     }
@@ -88,8 +86,8 @@ fn search_single_lr<T: CombStore>(nums: &[u128], segment: Segment, l: usize, r: 
     let blocks = split_segment_simple(segment);
     let pass = assign_k_simple(blocks, l, r);
     store.clear();
-    enum_combs(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, 0, segment, Combination::default());
-    let mut it_func = |x: Combination| {
+    enum_combs(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1.clone());}, pass.ca.0, 0, segment, Combination::default());
+    let mut it_func = |x: &Combination| {
         let compl = x.0 ^ target;
         match store.get(compl) {
             Some(c) => {res = Some(x.combine(&Combination(compl, c)));},
@@ -130,7 +128,7 @@ impl Solverv2 {
                     }
                 }
                 1 => {
-                    let mut it_func = |x: Combination| {
+                    let mut it_func = |x: &Combination| {
                         let compl = x.0 ^ target;
                         match self.search_include_lr(pass.ca.0, pass.ca.1, compl) {
                             Some(c) => res = Some(x.combine(&c)),

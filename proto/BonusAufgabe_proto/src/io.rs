@@ -26,7 +26,7 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TInput {
     pub n: usize,
     pub k: usize,

@@ -1,26 +1,23 @@
 use std::convert::Infallible;
 use std::env::args;
-use std::io::Read;
 use std::net::SocketAddr;
 use std::time::Duration;
 use BonusAufgabe_distributed::*;
-use BonusAufgabe_proto::io::TInput;
+use BonusAufgabe_proto::io::{TInput, TOutput};
+use BonusAufgabe_proto::structs::SearchRes;
 use bytes::{Bytes, BytesMut};
-use hyper::body::{Sender, HttpBody};
-use tokio::sync::Mutex;
-use std::sync::Arc;
+use tokio::sync::{broadcast, mpsc, RwLock};
+use std::ops::Range;
+use std::sync::{Arc, Mutex};
 use hyper::{Body, Request, Response, Server, Method, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
 
-lazy_static::lazy_static! {
-    static ref rsend: Mutex<Option<tokio::sync::mpsc::Sender<usize>>> = Mutex::new(None);
-}
-
-fn to_frame(chunk: Bytes) -> Bytes {
-    let mut b = BytesMut::from(&(chunk.len() as u16).to_be_bytes()[..]);
-    println!("{:?}", &b);
-    b.extend_from_slice(&chunk);
-    Bytes::from(b)
+#[derive(Clone)]
+struct Stuff {
+    input: Arc<TInput>,
+    shutdown_tx: broadcast::Sender<()>,
+    cursor: Arc<Mutex<Range<usize>>>,
+    result_tx: mpsc::UnboundedSender<ShiftResult>,
 }
 
 
@@ -29,77 +26,86 @@ async fn main() {
     let fname = args().nth(1).unwrap();
     let input = Arc::new(TInput::read_from(fname).unwrap());
     let n = input.n;
-    let senders = Arc::new(Mutex::new(vec![]));
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    let (ready_send, mut ready_core) = tokio::sync::mpsc::channel(100);
-    *rsend.lock().await = Some(ready_send);
-    let my_senders = senders.clone();
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+
+    let (shutdown_tx, shutdown_rx) = broadcast::channel::<()>(100);
+    let s_points = 0..(((n as f64/2.0).floor()+1.0) as usize);
+    let mut res_out = s_points.len();
+    let cursor = Arc::new(Mutex::new(s_points));
+
+    //Spawn result manager
+    let (result_tx, mut result_rx) = mpsc::unbounded_channel::<ShiftResult>();
+    let mut mshutdown_rx = shutdown_tx.subscribe();
+    let mshutdown_tx = shutdown_tx.clone();
+    //let mremaining_shifts = remaining_shifts.clone();
+    let result_handle: tokio::task::JoinHandle<SearchRes> = tokio::spawn(async move {   
+        loop {
+            tokio::select! {
+                res = result_rx.recv() => {
+                    let res = res.unwrap();
+                    res_out -= 1;
+                    //mremaining_shifts.write().await.rem
+                    match res.1 {
+                        Some(c) => {
+                            mshutdown_tx.send(()).ok();
+                            return Some(c);
+                        },
+                        None => {}
+                    }
+                    if res_out == 0 {
+                        mshutdown_tx.send(()).ok();
+                    }
+                },
+                _ = mshutdown_rx.recv() => {return None;}
+            }
+        }
+    });
+    //let (assignment_tx, assignment_rx) 
+    let stuff = Stuff {input, shutdown_tx: shutdown_tx.clone(), cursor, result_tx};
     let make_svc = make_service_fn(move |_conn| {
-        let input = input.clone();
-        let senders = senders.clone();
+        let stuff = stuff.clone();
         async move {
             Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                let input = input.clone();
-                let senders = senders.clone();
-                hello_world(req, input, senders)
+                let stuff = stuff.clone();
+                hello_world(req, stuff)
             }))
         }
     });
-
-    let server = Server::bind(&addr).serve(make_svc);
-    tokio::spawn(async move {
-        for s_point in 0..(((n as f64/2.0).floor()+1.0) as usize) {
-            let uuid: usize = ready_core.recv().await.unwrap();
-            println!("Sending sched: {}", s_point);
-            my_senders.lock().await[uuid].0.send_data(to_frame(Bytes::from(encode_message(Message::SCHEDULE(conv!(s_point)))))).await.unwrap();
-        }
-    });
-    
+    let mut mshutdown_rx = shutdown_tx.subscribe();
+    let shutdown_signal = async move {
+        mshutdown_rx.recv().await.unwrap()
+    };
+    let server = Server::bind(&addr).serve(make_svc).with_graceful_shutdown(shutdown_signal);
 
     if let Err(e) = server.await {
         eprintln!("server error: {}", e);
     }
+    let res = result_handle.await.ok();
+    println!("Finished!");
+
 }
 
-async fn hello_world(mut _req: Request<Body>, input: Arc<TInput>, senders: Arc<Mutex<Vec<(Sender, usize, usize)>>>) -> Result<Response<Body>, Infallible> {
+async fn hello_world(mut _req: Request<Body>, stuff: Stuff) -> Result<Response<Body>, Infallible> {
     let mut response = Response::new(Body::empty());
-
+    let input = stuff.input;
     match (_req.method(), _req.uri().path()) {
         (&Method::GET, "/tinput") => {
             println!("Got tinput");
-            *response.body_mut() = Body::from(encode_message(Message::TINPUT((*input).clone())))
+            *response.body_mut() = Body::from(serde_json::to_string(&(*input)).unwrap());
         },
-        (&Method::POST, "/listen") => {
-            println!("Got listen");
-            let jcount: usize = std::str::from_utf8(&hyper::body::to_bytes(_req.into_body()).await.unwrap()).unwrap().parse().unwrap();
-            let (mut sender, body) = Body::channel();
-            let mut senders = senders.lock().await;
-            let slen = senders.len();
-            let rsender = rsend.lock().await;
-            for _ in 0..jcount {
-                rsender.as_ref().unwrap().send(slen).await.unwrap();
+        (&Method::POST, "/get_assignment") => { //Does nothing with request!
+            println!("Got assignment request");
+            let cpos = stuff.cursor.lock().unwrap().next();
+            match cpos {
+                Some(s) => {
+                    *response.body_mut() = Body::from(serde_json::to_string(&ShiftAssignment(conv!(s))).unwrap());
+                },
+                None => {*response.status_mut() = StatusCode::GONE;}
             }
-            sender.send_data(to_frame(Bytes::from(encode_message(Message::SETID(conv!(slen)))))).await.unwrap();
-            senders.push((sender, slen, jcount));
-            response.headers_mut().append("Content-Type", "text/eventstream".try_into().unwrap());
-            *response.body_mut() = body;
         },
-        (&Method::POST, "/new_result") => {
+        (&Method::POST, "/assignment_result") => {
             println!("Got result");
-            let mut b = bytes::BytesMut::new();
-            while let Some(chunk) = _req.body_mut().data().await {
-                b.extend_from_slice(&chunk.unwrap());
-            }
-            let res = match decode_incoming(&b) {
-                Message::RESPONSE(res) => res,
-                _ => {panic!("Wrong message");}
-            };
-            rsend.lock().await.as_ref().unwrap().send(res.0 as usize).await.ok();
-            println!("{:?}", res.1.is_none());
-            if let Some(c) = res.1 {
-                println!("Found it");
-                std::process::exit(0);
-            }
+            stuff.result_tx.send(get_json(_req.into_body()).await.unwrap()).ok();
         },
         _ => {
             *response.status_mut() = StatusCode::NOT_FOUND;

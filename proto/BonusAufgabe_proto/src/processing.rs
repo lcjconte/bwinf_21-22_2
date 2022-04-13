@@ -15,12 +15,11 @@ pub struct Segment(pub usize, pub usize);
 #[derive(Clone, Default)]
 pub struct Constraints {
     pub s_limit: usize,
-    pub recursive: bool,
     pub max_jobs: usize
 } 
 impl Constraints {
-    pub fn new(size_limit: usize, recursive: bool, max_jobs: usize) -> Constraints {
-        let obj = Constraints {s_limit: size_limit, recursive, max_jobs};
+    pub fn new(size_limit: usize, max_jobs: usize) -> Constraints {
+        let obj = Constraints {s_limit: size_limit, max_jobs};
         assert!(obj.valid());
         obj
     }
@@ -55,8 +54,7 @@ pub fn assign_k_simple(blocks: Vec<Segment>, l: usize, r: usize) -> OnePass {
 pub fn process(input: &TInput, constraints: &Constraints) -> Option<TOutput> {
     println!("Started processing ...");
     let start_time = Instant::now();
-    let mut solver = Solver::new(Arc::new(input.nums.clone()), constraints);
-    //self.nums.sort(); //Needed for smart split
+    let solver = Solver::new(Arc::new(input.nums.clone()), constraints);
     let n = solver.nums.len();
     let k = input.k+1;
     let res = solver.search(Segment(0, n), k, 0);
@@ -93,10 +91,11 @@ fn call_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block:
 
 /// Calls func on all combinations of length k in the window
 /// The combination space can be shifted FIXME: URGENT!!!
-pub fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(Combination), block: Segment, shift: usize, window: Segment, cur: Combination) {
+#[inline]
+pub fn enum_combs(nums: &[u128], k: usize, func: &mut dyn FnMut(&Combination), block: Segment, shift: usize, window: Segment, cur: Combination) {
     assert!(block.1 <= nums.len());
     if k == 0 {
-        func(cur);
+        func(&cur);
         return;
     }
     if block.0==block.1 {return;}
@@ -133,8 +132,8 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
     let blocks = split_segment_simple(segment);
     let pass = assign_k_simple(blocks, l, r);
     store.clear();
-    enum_combs(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift, segment, Combination::default());
-    let mut it_func = |x: Combination| {
+    enum_combs(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1.clone());}, pass.ca.0, shift, segment, Combination::default());
+    let mut it_func = |x: &Combination| {
         let compl = x.0 ^ target;
         match store.get(compl) {
             Some(c) => {res = Some(x.combine(&Combination(compl, c)));},
@@ -155,7 +154,7 @@ impl Solver {
         self.shift_search(segment, k, target)
     }
     fn shift_search(&self, segment: Segment, k: usize, target: u128) -> SearchRes {
-        let Constraints { s_limit: cap, recursive: _, max_jobs: jcount } = self.cons;
+        let Constraints { s_limit: cap, max_jobs: jcount } = self.cons;
         type Store = HashMapStore;
         let nums = self.nums.clone();
         let Segment(lo, hi) = segment;

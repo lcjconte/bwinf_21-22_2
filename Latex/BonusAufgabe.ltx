@@ -198,8 +198,28 @@ Wenn die Zahlen nur 64-Bit hätten müsste man sie überhaupt nicht hashen und a
 Um die effiziente Berechnung von dp Werte zu erlauben, enthält ''structs'' noch \textit{DPArray}, ein bis zu 3-dimensionales Array. Dieses wird zum Beispiel von \textit{BinomC}, einem struct aus ''math.rs'', welches den Binomialkoeffizienten berechnet, verwendet.
 
 \subsection{Verarbeitung}
-
-
+Die Verarbeitung, welche in der "processing.rs" Datei implentiert ist, beginnt mit der \textit{process} Funktion. Diese erhält die Eingabe, sowie ein \textit{Constraints} Objekt, welches die Größe der gleichzeitig gespeicherten \textit{Combination} Werte begrenzt, sowie die Anzahl der gleichzeitig verwendeten Rechen-Threads. Es machen maximal so viele Threads Sinn, wie der CPU Cores hat. Die weitere Verarbeitung findet mit einem \textit{Solver} Objekt statt, welches die Methode \textit{shift\textunderscore search} besitzt. Diese Methode berechnet wie viele Threads tatsächlich parallel benutzt werden können, ohne zu viel Speicher zu verbrauchen, und spawnt dann diese Threads, wobei die HashMaps statt jedesmal neu erstellt zu werden zwischen den Threads ausgetauscht werden. Innerhalb eines dieser Rechen-Threads wird die Funktion verwendet:
+\begin{minted}[breaklines]{rust}
+pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usize, shift: usize, target: u128, store: &mut T) -> SearchRes {
+    let mut res: SearchRes = None;
+    let l = (k as f64/2.0).ceil() as usize;
+    let r = k-l;
+    let blocks = split_segment_simple(segment);
+    let pass = assign_k_simple(blocks, l, r);
+    store.clear();
+    enum_combs(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift, segment, Combination::default());
+    let mut it_func = |x: Combination| {
+        let compl = x.0 ^ target;
+        match store.get(compl) {
+            Some(c) => {res = Some(x.combine(&Combination(compl, c)));},
+            None => ()
+        }
+    };
+    enum_combs(nums, pass.it.1, &mut it_func, pass.it.0, shift, segment, Combination::default());
+    res
+}
+\end{minted}
+Die Funktionen \textit{split...simple} und \textit{assign...simple} teilen lediglich den vorgegeben Zahlenbereich in zwei Hälften auf. \textit{enum\textunderscore combs} geht alle Kombinationen der Länge k durch und ruft für jede Kombination eine Funktion auf. Diese ist für die eine Hälfte die Funktion, die die Kombination speichert und für die zweite Hälfte die Funktion \textit{it\textunderscore func}, die für die gegebene Kombination die entsprechende findet. 
 
 \subsection{Verifikation}
 Zufällige Menge an Zahlen unwahrscheinlich 

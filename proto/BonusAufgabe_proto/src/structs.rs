@@ -2,6 +2,7 @@
 use std::ops::BitOr;
 use std::collections::HashMap;
 use ahash::RandomState;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
 pub struct DParray<T: Copy>{
@@ -32,11 +33,12 @@ impl<T: Copy> DParray<T> {
 }
 
 /// A 256 unsigned int with limited functionality
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct u256(pub u128, pub u128);
 impl u256 {
     /// Sets bit at idx to 1
+    #[inline]
     pub fn set(&mut self, mut idx: usize) {
         debug_assert!(idx < 256);
         let ed: &mut u128 = if idx >= 128 {
@@ -48,6 +50,7 @@ impl u256 {
         *ed |= 1 << idx;
     }
     /// Returns value of bit at idx
+    #[inline]
     pub fn get(&self, mut idx: usize) -> bool {
         debug_assert!(idx < 256);
         let ed: &u128 = if idx >= 128 {
@@ -64,6 +67,7 @@ impl u256 {
 }
 impl BitOr for u256 {
     type Output = Self;
+    #[inline]
     fn bitor(self, rhs: Self) -> Self::Output {
         Self(self.0 | rhs.0, self.1 | rhs.1)
     }
@@ -96,26 +100,31 @@ impl CombStore for HashMapStore {
         hmap.reserve(size);
         HashMapStore(hmap)
     }
+    #[inline]
     fn insert(&mut self, k: u128, v: u256) {
         self.0.insert(k, v);
     }
+    #[inline]
     fn get(&mut self, k: u128) -> Option<u256> {
         self.0.get(&k).cloned()
     }
+    #[inline]
     fn clear(&mut self) {
         self.0.clear();
     }
 }
 /// (xor, combination)
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Combination(pub u128, pub u256);
 impl Combination {
     /// Add number and its index to new combination
+    #[inline]
     pub fn add(&self, b: u128, idx: usize) -> Combination {
         let mut c = Combination(self.0 ^ b, self.1.clone());
         c.1.set(idx);
         c
     }
+    #[inline]
     pub fn combine(&self, b: &Combination) -> Combination {
         let mut c = Combination(self.0 ^ b.0, self.1.clone());
         c.1 = c.1 | b.1.clone();

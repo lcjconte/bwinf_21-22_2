@@ -12,8 +12,8 @@ tokio = { version = "1", features = ["full"] }
 futures = "0.3.21"
 BonusAufgabe_proto = { path = "../BonusAufgabe_proto" }
 bytes = "1.1.0"
-base64 = "0.13.0"
-lazy_static = "1.4.0"
+serde = {version = "1.0", features = ["derive"] }
+serde_json = "1.0.79"
 
 [[bin]]
 name = "server"
