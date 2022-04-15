@@ -1,6 +1,7 @@
 use crate::io::{MAXN, MAXK};
 use crate::structs::DParray;
 
+/// Contains cost estimation functions
 #[derive(Clone)]
 pub struct BinomC {
     pascal: DParray<u128>,
@@ -17,7 +18,6 @@ impl Default for BinomC {
 
 impl BinomC {
     fn init(&mut self) {
-        //Calculate pascal triangle
         *self.pascal.get2_mut(0, 0) = 1;
         for n in 1..MAXN+1 {
             *self.pascal.get2_mut(n, 0) = 1;

@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use std::ops::{BitOr, BitAnd, BitXor};
+use std::ops::{BitOr, BitXor};
 use std::collections::HashMap;
 use ahash::RandomState;
 use serde::{Deserialize, Serialize};
@@ -89,13 +89,6 @@ impl BitOr for u256 {
         Self(self.0 | rhs.0, self.1 | rhs.1)
     }
 }
-impl BitAnd for u256 {
-    type Output = Self;
-    #[inline]
-    fn bitand(self, rhs: Self) -> Self::Output {
-        Self(self.0 & rhs.0, self.1 | rhs.1)
-    }
-}
 impl BitXor for u256 {
     type Output = Self;
     #[inline]
@@ -145,11 +138,6 @@ impl Combination {
         c
     }
     #[inline]
-    pub(crate) fn add_inplace(&mut self, b: u128, idx: usize) {
-        self.0 ^= b;
-        self.1.set(idx);
-    }
-    #[inline]
     pub fn apply(&self, b: u128, idx: usize) -> Combination {
         let mut c = Combination(self.0 ^ b, self.1);
         c.1.toggle(idx);
@@ -160,11 +148,6 @@ impl Combination {
         let mut c = Combination(self.0 ^ b.0, self.1);
         c.1 = c.1 | b.1;
         c
-    }
-    #[inline]
-    pub fn combine_inplace(&mut self, b: &Combination) {
-        self.0 ^= b.0;
-        self.1 = self.1 | b.1;
     }
     #[inline]
     pub fn toggle_inplace(&mut self, b: &Combination) {

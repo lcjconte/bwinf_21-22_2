@@ -5,17 +5,17 @@
 \usepackage[a4paper,margin=2.5cm]{geometry}
 
 % Die nächsten drei Felder bitte anpassen:
-\newcommand{\Name}{Team: ??? / Name} % Teamname oder eigenen Namen angeben
-\newcommand{\TeamId}{???}
-\newcommand{\Aufgabe}{Aufgabe3: \LaTeX-Dokument}
+\newcommand{\Aufgabe}{Aufgabe 3: Hex-Max}
+\newcommand{\TeilnahmeId}{62048}
+\newcommand{\Name}{Leandro Conte} % Teamname oder eigenen Namen angeben
 
 % Kopf- und Fußzeilen
-\usepackage{scrlayer-scrpage}
-\setkomafont{pageheadfoot}{\textrm}
-\ifoot{\Name}
-\cfoot{\thepage}
-\chead{\Aufgabe}
-\ofoot{Team-ID: \TeamId}
+
+\usepackage{scrlayer-scrpage, lastpage}
+\setkomafont{pageheadfoot}{\large\textrm}
+\lohead{\Aufgabe}
+\rohead{Teilnahme-ID: \TeilnahmeId}
+\cfoot*{\thepage{}/\pageref{LastPage}}
 
 % Für mathematische Befehle und Symbole
 \usepackage{amsmath}
@@ -26,6 +26,7 @@
 \DeclarePairedDelimiter\abs{\mid}{\mid}
 \newcommand{\rar}{\rightarrow}
 
+
 % Für Bilder
 \usepackage{graphicx}
 
@@ -34,16 +35,17 @@
 
 % Für Quelltext
 \usepackage{minted}
-\usepackage{fancyvrb}
 
 % Diese beiden Pakete müssen als letztes geladen werden
 %\usepackage{hyperref} % Anklickbare Links im Dokument
 \usepackage{cleveref}
 
-% Daten für die Titelseite
-\title{\Aufgabe}
-\author{\Name\\Team-ID: \TeamId}
-\date{\today}
+% Daten fÃ¼r die Titelseite
+\title{\textbf{\Huge\Aufgabe}}
+\author{\LARGE Teilnahme-ID: \LARGE \TeilnahmeId \\\\
+	    \LARGE Bearbeiter dieser Aufgabe: \\ 
+	    \LARGE \Name\\\\}
+\date{\LARGE\today}
 
 \begin{document}
 

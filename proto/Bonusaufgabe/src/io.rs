@@ -3,22 +3,11 @@ use std::error::Error;
 use std::fmt::{self, Display};
 use std::io::{self, BufRead};
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use serde::{Serialize, Deserialize};
 
 pub const MAXN: usize = 256;
 pub const MAXK: usize = 20;
-
-/// Returns manifest path plus argument
-pub fn manifest_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
-    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    d.push(plus);
-    d
-}
-/// Returns workspace path plus argument
-pub fn workspace_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
-    let d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    d.join("..").join("..").join(plus)
-}
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where P: AsRef<Path>, {
@@ -26,7 +15,7 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
-#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct TInput {
     pub n: usize,
     pub k: usize,
@@ -54,6 +43,7 @@ impl TInput {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TOutput {
     pub input: TInput,
     pub nums: Vec<u128>,

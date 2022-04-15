@@ -1,9 +1,9 @@
 use std::env;
 
-use BonusAufgabe_proto::io::*;
-use BonusAufgabe_proto::structs::*;
-use BonusAufgabe_proto::processing::*;
-use BonusAufgabe_proto::testing::*;
+use Bonusaufgabe::io::*;
+use Bonusaufgabe::structs::*;
+use Bonusaufgabe::processing::*;
+use Bonusaufgabe::testing::*;
 
 fn main() {
     //tests::run_solvable_tests();

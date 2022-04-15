@@ -1,5 +1,3 @@
-#![feature(test)]
-
 use super::io::*;
 use super::processing::*;
 use rand::thread_rng;
@@ -34,10 +32,10 @@ pub fn generate_random(n: usize, k: usize) -> TInput {
 
 pub fn run_quick_samples() {
     for i in (0..3).chain(5..6) {
-        let input = TInput::read_from(&workspace_plus(format!("eingaben/BonusAufgabe/stapel{}.txt", i))).unwrap();
+        let input = TInput::read_from(&format!("eingaben/stapel{}.txt", i)).unwrap();
         let output = process(&input, &Constraints::new(10 * 1e7 as usize, 4)).unwrap();
         assert!(output.verify());
-        fs::write(manifest_plus(format!("ausgaben/ausgabe{}.txt", i)), format!("{}", output)).unwrap();
+        fs::write(format!("ausgaben/ausgabe{}.txt", i), format!("{}", output)).unwrap();
     }
 }
 
@@ -50,11 +48,8 @@ pub mod tests {
         for _ in 0..r {
             let n = thread_rng().gen_range(2..maxn);
             let maxk = MAXK.min(n-1);
-            println!("N: {}", n);
             let input = generate_random(n, thread_rng().gen_range(1..maxk+1));
-            let res = process(&input, &Constraints::new(10 * 1e7 as usize, 4));
-            println!("Finished");
-            //assert!(res.unwrap().verify());
+            let _res = process(&input, &Constraints::new(10 * 1e7 as usize, 4));
         }
     }
     #[test]
@@ -64,10 +59,12 @@ pub mod tests {
             let n = thread_rng().gen_range(2..maxn);
             let maxk = MAXK.min(n-1);
             let input = generate_solvable(n, thread_rng().gen_range(1..maxk+1));
-            println!("N: {}", n);
             let res = process(&input, &Constraints::new(10 * 1e7 as usize, 4));
-            println!("Finished: {}", n);
             assert!(res.unwrap().verify());
         }
+    }
+    #[test]
+    pub fn test_quick_samples() {
+        run_quick_samples();
     }
 }

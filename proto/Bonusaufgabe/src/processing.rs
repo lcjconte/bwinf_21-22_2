@@ -36,13 +36,13 @@ pub struct OnePass {
     pub ca: (Segment, usize),
 }
 
-/// Splits segment in half (usable in both searches)
+/// Splits segment in half
 #[inline]
 pub fn split_segment_simple(segment: Segment) -> Vec<Segment>{
     let sl = ((segment.1-segment.0) as f64 / 2.0).ceil() as usize;
     vec![Segment(segment.0, segment.0+sl), Segment(segment.0+sl, segment.1)]
 }
-
+/// Assigns memoization to smaller half
 #[inline]
 pub fn assign_k_simple(blocks: Vec<Segment>, l: usize, r: usize) -> OnePass {
     let mut obj = OnePass { it: (blocks[0], l), ca: (blocks[1], r) };
@@ -90,8 +90,7 @@ impl TOutput {
     }
 }
 
-/// Calls func on all combinations of length k in the window
-/// The combination space can be shifted FIXME: URGENT!!!
+/// Calls func on all combinations of length k 
 pub fn map_combs_simple(nums: &[u128], k: usize, func: &mut dyn FnMut(&Combination), block: Segment, shift: usize, cur: Combination) {
     assert!(block.1 <= nums.len());
     if k == 0 {
@@ -104,7 +103,7 @@ pub fn map_combs_simple(nums: &[u128], k: usize, func: &mut dyn FnMut(&Combinati
         map_combs_simple(nums, k-1, func, Segment(i+1, block.1), shift, cur.add(nums[num_idx], num_idx));
     }
 }
-
+/// Optimized version of map_combs_simple
 pub fn map_combs_adv(nums: &[u128], k: usize, func: &mut dyn FnMut(&Combination), block: Segment, shift: usize) {
     let mut prefix = vec![Combination::default(); nums.len()];
     prefix[0] = Combination::default().add(nums[0], 0);
@@ -124,6 +123,7 @@ fn map_combs_inner(nums: &[u128], mut k: usize, func: &mut dyn FnMut(&Combinatio
         k = n-k;
         let lo = (block.0+shift) % nums.len();
         let hi = (block.1+shift) % nums.len();
+        // Toggle block space
         if hi > lo {
             cur.toggle_inplace(&prefix[hi-1]);
             if lo > 0 {
@@ -138,7 +138,7 @@ fn map_combs_inner(nums: &[u128], mut k: usize, func: &mut dyn FnMut(&Combinatio
             }
         }
     }
-    if k == 0 {
+    if k == 0 { //Equivalent to k == n before toggling
         return func(&cur);
     }
     for i in block.0..block.1 {
@@ -170,7 +170,7 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
     let blocks = split_segment_simple(segment);
     let pass = assign_k_simple(blocks, l, r);
     store.clear();
-    map_combs_simple(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift, Combination::default());
+    map_combs_adv(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift/*, Combination::default()*/);
     let mut it_func = |x: &Combination| {
         let compl = x.0 ^ target;
         match store.get(compl) {
@@ -178,7 +178,7 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
             None => ()
         }
     };
-    map_combs_simple(nums, pass.it.1, &mut it_func, pass.it.0, shift, Combination::default());
+    map_combs_adv(nums, pass.it.1, &mut it_func, pass.it.0, shift/*, Combination::default()*/);
     res
 }
 

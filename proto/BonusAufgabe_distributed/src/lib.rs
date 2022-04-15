@@ -24,7 +24,6 @@ pub struct ShiftResult(pub u128, pub SearchRes, pub u32);
 }*/
 
 //TODO:
-//Rest are http requests
 //Check functional
 
 pub async fn get_json<T: serde::de::DeserializeOwned>(mut body: Body) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {

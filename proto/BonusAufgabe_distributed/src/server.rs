@@ -5,7 +5,6 @@ use std::time::Duration;
 use BonusAufgabe_distributed::*;
 use BonusAufgabe_proto::io::{TInput, TOutput};
 use BonusAufgabe_proto::structs::SearchRes;
-use bytes::{Bytes, BytesMut};
 use tokio::sync::{broadcast, mpsc, RwLock};
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
@@ -80,7 +79,8 @@ async fn main() {
     if let Err(e) = server.await {
         eprintln!("server error: {}", e);
     }
-    let res = result_handle.await.ok();
+    let res = result_handle.await.unwrap();
+    println!("{}", res.is_some());
     println!("Finished!");
 
 }

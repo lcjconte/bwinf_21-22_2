@@ -5,17 +5,17 @@
 \usepackage[a4paper,margin=2.5cm]{geometry}
 
 % Die nächsten drei Felder bitte anpassen:
-\newcommand{\Name}{Team: ??? / Name} % Teamname oder eigenen Namen angeben
-\newcommand{\TeamId}{???}
-\newcommand{\Aufgabe}{Bonus Aufgabe: \LaTeX-Dokument}
+\newcommand{\Aufgabe}{Bonusaufgabe: Zara Zackigs Zurückkehr}
+\newcommand{\TeilnahmeId}{62048}
+\newcommand{\Name}{Leandro Conte} % Teamname oder eigenen Namen angeben
 
 % Kopf- und Fußzeilen
-\usepackage{scrlayer-scrpage}
-\setkomafont{pageheadfoot}{\textrm}
-\ifoot{\Name}
-\cfoot{\thepage}
-\chead{\Aufgabe}
-\ofoot{Team-ID: \TeamId}
+
+\usepackage{scrlayer-scrpage, lastpage}
+\setkomafont{pageheadfoot}{\large\textrm}
+\lohead{\Aufgabe}
+\rohead{Teilnahme-ID: \TeilnahmeId}
+\cfoot*{\thepage{}/\pageref{LastPage}}
 
 % Für mathematische Befehle und Symbole
 \usepackage{amsmath}
@@ -39,10 +39,12 @@
 %\usepackage{hyperref} % Anklickbare Links im Dokument
 \usepackage{cleveref}
 
-% Daten für die Titelseite
-\title{\Aufgabe}
-\author{\Name\\Team-ID: \TeamId}
-\date{\today}
+% Daten fÃ¼r die Titelseite
+\title{\textbf{\Huge\Aufgabe}}
+\author{\LARGE Teilnahme-ID: \LARGE \TeilnahmeId \\\\
+	    \LARGE Bearbeiter dieser Aufgabe: \\ 
+	    \LARGE \Name\\\\}
+\date{\LARGE\today}
 
 \begin{document}
 
@@ -53,18 +55,20 @@
 % Hier kommt der Inhalt hin!
 
 \section{Lösungsidee}
-\subsection{Problem a)}
+\subsection{Generelle Beschreibung von Problem a)}
 Gegeben sind N 128-Bit Zahlen $\{a_0,\dots, a_{N-1}\} = W$, die gegebenen Karten. (Indizes sind 0-basiert) \\
-Gesucht sind k Indizes I, sodass $a_{i_0} \oplus \dots \oplus a_{i_{k-2}} = a_{i_{k-1}}$ für $i_j \in I$, die Indizes der Karten, die nicht von den Freunden Zaras hinzugefügt wurden. (k hier ist um eins größer als in der Aufgabenstellung!) \\
+Gesucht sind k Indizes I, sodass $a_{i_0} \oplus \dots \oplus a_{i_{k-2}} = a_{i_{k-1}}$ für $i_j \in I$, die Indizes der Karten, die nicht von den Freunden Zaras hinzugefügt wurden. (k ist im Rest der Dokumentation um eins größer als in der Aufgabenstellung!) \\
 Da $x \oplus x = 0$ und $\oplus$ assoziativ und kommutativ ist gilt:
 \begin{align}
 	a_{i_0} \oplus \dots \oplus a_{i_{k-2}} = a_{i_{k-1}}  \iff
 	a_{i_0} \oplus \dots \oplus a_{i_k-1} = 0
 \end{align}
+Man kann also die Sicherungskarte nicht von den Karten unterscheiden, aus denen sie zusammengestellt wurde.
+
 Es seien:
 \[ Z := \text{Indizes in } [0;N) \]
 \[\text{Für eine Indexmenge z: } xor(z) := \bigoplus_{x \in z}{a_x}\]
-Es ist also die Menge $I$ gesucht, für die gilt $\abs{I}=k \land xor(I) = 0$
+Es ist also die Menge $I$ gesucht, für die gilt $\abs{I}=k$ und  $xor(I) = 0$
 Das Verfahren zum Finden der Menge I wird abgesehen vom nächsten Block im Rest der Dokumentation erklärt.
 
 \subsection{Problem b)}
@@ -72,36 +76,41 @@ Hat man einmal die Menge I und damit die Schlüssel sowie die Sicherungskarte ge
 Dies ist möglich, da die Codewörter aufsteigend sortiert sind. Das einzige Problem ist, dass die Sicherungskarte aufgrund von (1) nicht von den Schlüsseln unterscheidbar ist. Um ein Haus i aufzusperren muss Zara zuerst die i-te der sortierten Karten verwenden. Falls diese nicht passt weiß sie, dass die Sicherungs-Karte im Bereich [0;i) liegt und deshalb alle Indizes ab der Sicherungskarte um eins größer sind als sie seien sollten. Die gesuchte Karte ist dann die (i+1)-te
 
 \subsection{Naive Ansätze}
-Das Problem besitzt eine gewisse Ähnlichkeit zum Subset sum Problem für eine feste Anzahl an Summanden, einziger Unterschied ist, dass bei diesem Problem $\oplus$ statt $+$ verwendet wird. Eine DP-Lösung, wie sie beim Subset sum Problem für kleine Summen möglich wäre kann hier nicht verwendet werden, da die Zahlen im Bereich $[0, 2^{128})$ liegen. \\
+Das Problem besitzt eine gewisse Ähnlichkeit zum Subset-sum Problem für eine feste Anzahl an Summanden, einziger Unterschied ist, dass bei diesem Problem $\oplus$ statt $+$ verwendet wird. Eine DP-Lösung, wie sie beim Subset sum Problem für kleine Summen möglich wäre kann hier nicht verwendet werden, da die Zahlen im Bereich $[0, 2^{128})$ liegen. \\
 Ein anderer möglicher Ansatz wäre alle k-Kombinationen an Indizes in [0;N) auszuprobieren, doch für N=111 und k=11 gibt es 
-$\binom{n}{k}\approx 4.7 \cdot 10^{14}$ viele Möglichkeiten. Diese alle einzeln auszuprobieren würde zu lange dauern. Der Ansatz alle Kombinationen zu durchsuchen kann jedoch durch einige Beobachtungen beschleunigt werden.
+$\binom{N}{k}\approx 4.7 \cdot 10^{14}$ viele Möglichkeiten. Diese alle einzeln auszuprobieren würde zu lange dauern. Der Ansatz alle Kombinationen zu durchsuchen kann jedoch durch einige Beobachtungen beschleunigt werden.
 
-\subsection{Effizientere Durchquerung des Suchraums durch Hashtable Strukur}
+\subsection{Effizientere Suche durch Hashtable Strukur}
 Die gegebenen Zahlen werden in zwei Hälften L und R geteilt.
 Angenommen folgende Information ist bekannt: l Indizes liegen in L und r Indizes liegen in R
-Eine l-Kombination an Indizes $K_1$ aus der ersten Hälfte ist dann teil eines möglichen I, wenn eine korrespondierende r-Kombination an Indizes $K_2$ aus der zweiten Hälfte existiert, so dass: (Zielwert?)
+Eine l-Kombination an Indizes $K_1$ aus der ersten Hälfte ist dann teil eines möglichen I, wenn eine korrespondierende r-Kombination an Indizes $K_2$ aus der zweiten Hälfte existiert, so dass:
 \begin{align*}
 xor(K_1) \oplus xor(K_2) = 0  \\
 \implies xor(K_1) = xor(K_2) 
 \end{align*}
-Anstatt für alle $\binom{N/2}{l}$ möglichen $K_1$ jeweils alle $\binom{N/2}{r}$ möglichen $K_2$ auszuprobieren \\(Laufzeit: $O(\binom{N/2}{l} \cdot \binom{N/2}{r})$, \\
-können alle $\binom{N/2}{r}$ möglichen $K_2$ in einer Hashtable gespeichert werden, wo sie mit $xor(K_2)$ als Schlüssel in konstanter Zeit gefunden werden können (Laufzeit: $O(\binom{N/2}{l} + \binom{N/2}{r})$. \\Für r=5 müssen nur $\binom{55}{5} \approx 3.5 \cdot 10^6$ viele Werte gespeichert werden. (Es sei an dieser Stelle angemerkt, dass das Durchsuchen von $\binom{n}{k}$ Kombinationen für $k \leq \frac{n}{2}$ besser durch $O(\sum_{j=1}^{k} \binom{n}{j})$ beschrieben wird. Da die Differenz jedoch nicht relevant zur Schätzung der Laufzeit ist wird sie ignoriert.) \\
+Anstatt für alle $\binom{N/2}{l}$ möglichen $K_1$ jeweils alle $\binom{N/2}{r}$ möglichen $K_2$ auszuprobieren \\(Laufzeit: $O(\binom{N/2}{l} \cdot \binom{N/2}{r})$,
+können alle $\binom{N/2}{r}$ möglichen $K_2$ in einer Hashtabelle gespeichert werden, wo sie mit $xor(K_2)$ als Schlüssel in konstanter Zeit gefunden werden können (Laufzeit: $O(\binom{N/2}{l} + \binom{N/2}{r})$. \\Für r=5 müssen nur $\binom{55}{5} \approx 3.5 \cdot 10^6$ viele Werte gespeichert werden.  \\
 Das Problem ist nun aber, dass l und r nicht bekannt sind. Zur Lösung gibt es zwei Ansätze
 
 \subsection{Ansatz 1: Alle möglichen Paare l, r ausprobieren}
-Da es für k=11 nur 11 mögliche Paare (l, r) gibt wäre es denkbar all diese Paare auszuprobieren. Eine Hürde stellen die Extremfälle dar, in denen zum Beispiel l=0 ist. Dann gibt es nämlich $\binom{55}{11} \approx 1.2 \cdot 10^{11}$ Kombinationen rechts. Zwei Optimierungen werden benötigt: 
-\subsubsection{Kostenschätzfunktion und Rekursion}
- Falls die Anzahl an Kombinationen für ein (l, r) zu groß ist um komplett durchgegangen zu werden, soll der Suchalgorithmus für jede Kombination der geringeren Hälfte rekursiv auf die größere Hälfte angewandt werden. Das heißt, dass im Falle l=0  der Vorgang also einmal rekursiv auf die rechte Hälfte angewandt wird.
+Da es für k=11 nur 11 mögliche Paare (l, r) gibt wäre es denkbar all diese Paare auszuprobieren. Eine Hürde stellen die Extremfälle dar, in denen zum Beispiel r=11 ist. Dann gibt es nämlich $\binom{55}{11} \approx 1.2 \cdot 10^{11}$ Kombinationen rechts. Zwei Optimierungen werden benötigt: 
 
-Um zu wissen wann es für ein für eine Bereichsgröße n und ein Paar l, r besser ist die Suche sofort mittels Hashtable auszuführen oder stattdessen mit erneuter Rekursion die Suche zu beschleunigen, werden die Funktionen $es(n, k)$, die Anzahl der benötigten Schritte für eine Problemstellung mit n Zahlen und k gesuchten Indizes und $si(n, l, r)$, die Anzahl der benötigten Schritee für ein bestimmtes $(l, r)$, benötigt.
+\subsubsection{Kostenschätzfunktion und Rekursion}
+ Falls die Anzahl an Kombinationen für ein (l, r) zu groß ist um komplett durchgegangen zu werden, soll der Suchalgorithmus für jede Kombination der geringeren Hälfte rekursiv auf die größere Hälfte angewandt werden. Das heißt, dass im Falle l=0  der Vorgang also einmal rekursiv auf die rechte Hälfte angewandt wird. Dabei muss beachtet werden, dass für eine Teilsuche $xor(K_1) \oplus xor(K_2) = s$ und s nicht immer 0 ist.
+
+Um zu wissen wann es für ein für eine Bereichsgröße n und ein Paar l, r besser ist die Suche sofort mittels Hashtable auszuführen oder stattdessen mit erneuter Rekursion die Suche zu beschleunigen, werden die Funktionen $es(n, k)$, die Anzahl der benötigten Schritte für eine Problemstellung mit n Zahlen und k gesuchten Indizes und $si(n, l, r)$, die Anzahl der benötigten Schritte für ein bestimmtes $(l, r)$, benötigt.
 \begin{gather*}
 es(n, k) = \sum_{(l, r)}{si(n, l, r)}\\
 si(n, l, r) = \min{(\binom{n/2}{l}^\Sigma + \binom{n/2}{r}^\Sigma, \quad \binom{n/2}{l}^\Sigma \cdot es(\frac{n}{2}, r))} \quad \text{, wobei }\binom{n}{k}^\Sigma = \sum_{j=1}^{k} \binom{n}{j} \text{ und } k \leq \frac{n}{2}
 \end{gather*}
-si soll minimiert werden. In der oben gezeigten Formel ist das 1. Argument von $\min$ die Schrittzahl für eine ''lokale'' Suche und das 2. Argument die Schrittzahl der Rekursion. Um $es$ während der Verarbeitung effizient zu berechen können Ergebnisse gespeichert, was in einer Laufzeit $O(N^2)$ (für $es$) resultiert. 
+$si$ soll minimiert werden. In der oben gezeigten Formel ist das 1. Argument von $\min$ die Schrittzahl für eine ''lokale'' Suche und das 2. Argument die Schrittzahl der Rekursion. Um $es$ während der Verarbeitung effizient zu berechnen werden die Ergebnisse gespeichert, was in einer Laufzeit $O(N^2)$ (für $es$) resultiert. 
 
-Der gerade genannte Ansatz ist in der Praxis mit bestimmten Optimierungen schnell genug um das Beispiel mit n=111 und k=11 in ca. 13 Minuten zu lösen. Jedoch ist er zu langsam für die größeren Beispiele, schwer zu parallelisieren und unschön.
-Eine mögliche Optimierung ist die Zahlen zuerst zu sortieren.
+$\binom{n}{k}^\Sigma$ ist eine Approximation für die zur Iteration aller Kombinationen benötigte Schrittzahl für "kleine" k's. In 2.3.1 wird eine effizientere Methode gezeigt.
+
+\subsubsection{Halbierung der Menge an auszuprobierenden (l, r) Paaren}
+Wenn die Zahlen vor der Verarbeitung sortiert werden, kann man sie statt exakt in der Hälfte, beim Übergang des bedeutendsten Bits teilen. So kann man bestimmte (l,r) Paare ausschließen, da für keine ungerade Kombination von Zahlen z, die alle an Stelle x ein gesetztes Bit haben, $xor(z) = 0$ gilt.
+\\ \\
+Der gerade genannte Ansatz ist in der Praxis mit bestimmten Optimierungen schnell genug um das Beispiel 2 mit N=111 und k=11 in ca. 13 Minuten zu lösen. Jedoch ist er zu langsam für die größeren Beispiele und schwer zu parallelisieren.
 
 \subsection{Ansatz 2: Verschieben der Hälften}
 Es sind die Paare (l, r) am aufwendigsten, bei denen l und r weit auseinander liegen: 
@@ -112,7 +121,7 @@ Der folgend beschriebene Algorithmus iteriert über verschiedene Zusammensetzung
 Es werden maximal $\floor{\frac{N}{2}}+1$ Iterationen benötigt und diese werden von 0 an in einer Schritten gezählt.
 Wie werden die Hälften zusammengesetzt und ist garantiert, dass alle Kombinationen betrachtet werden? \\
 Die Hälften kann man sich als zusammenhängende Bereiche vorstellen, die bei jeder Iteration verschoben werden.
-Beispiel für n=8:
+Beispiel für N=8:
 \begin{itemize}
 \item s=0: ****....
 \item s=1 .****...
@@ -123,14 +132,14 @@ Beispiel für n=8:
 Allgemein entsprechen bei der Iteration s: \\
 Die erste Hälfte $L_s$ := $[s;s+\ceil{N/2})$ \\
 Die Zweite Hälfte $R_s$ := $Z \setminus L_s$ \\
-Bild?\\
-\textbf{Hilfssatz: Für jede k-Kombination aus Z existiert mindestens ein $0 <= s <= \floor{\frac{n}{2}}$ , so dass $\ceil{\frac{k}{2}}$ der Elemente der k-Kombination in $L_s$ sind} und daraus folgend $\floor{\frac{k}{2}}$ in $R_s$. \\
+\textbf{Hilfssatz: Für jede k-Kombination aus Z existiert mindestens ein $0 <= s <= \floor{\frac{N}{2}}$ , so dass $\ceil{\frac{k}{2}}$ der Elemente der k-Kombination in $L_s$ sind} und daraus folgend $\floor{\frac{k}{2}}$ in $R_s$. \\
 Aus dem Hilfssatz folgt die Korrektheit des Verfahrens, da dann jede k-Kombination bei mindestens einer Iteration in Betracht gezogen wird. Die Laufzeit des zweiten Verfahrens ist ca. $O(N*\binom{N/2}{k/2})$
+
 \subsubsection{Beweis des Hilfssatzes}
 Um denn Satz zu beweisen, reicht es zu zeigen, dass für eine beliebige k-Kombination C ein s gefunden werden kann, dass die erwartete Bedingung erfüllt. \\
 $z_s$ sei die Anzahl der Kombinationselemente in der ersten Hälfte: $z_s := \abs{ K \cap L_s }$\\
 $x := z_0$\\
-$y := z_{\ceil{\frac{n}{2}}}$\\
+$y := z_{\floor{\frac{N}{2}}}$\\
 Zentral für den Beweis ist folgende Beobachtung über die Veränderung von $z_s$ bei Änderung von s:\\
 \begin{equation}
 \abs{ z_{s+1}-z_s } = 
@@ -139,11 +148,12 @@ Zentral für den Beweis ist folgende Beobachtung über die Veränderung von $z_s
 0
 \end{cases}
 \end{equation}
-Dies ergibt sich daraus, dass bei einer "Verschiebung" von $L_s$ maximal ein Element entfernt werden muss und maximal eines hinzugefügt werden muss.
-
+Dies ergibt sich daraus, dass bei einer ''Verschiebung'' von $L_s$ maximal ein Element entfernt werden muss und maximal eines hinzugefügt werden muss.\\
 Um den Satz zu beweisen muss nun gezeigt werden, dass: 
 \begin{equation}\ceil{\frac{k}{2}} \text{ zwischen inklusiv $x$ und $y$ liegt.} \end{equation}
 Der Beweis wird nur für $x \leq y$ geführt, kann jedoch symmetrisch (mann muss x mit y tauschen) auch für $y \leq x$ geführt werden.
+
+Zuerst wird eine Variable u eingeführt, da sich für ein ungerades N, durch das Überlappen von $L_{0}$ und $L_{\floor{\frac{N}{2}}}$ ein Spezialfall ergibt, falls der ''überlappte'' mittlere Index in C ist.
 \begin{equation*}
 u := \begin{cases}
 1, \text{falls n ungerade ist und für das mittlere immer in $L_s$ enthaltene Element gilt}\floor{n/2} \in C \\
@@ -153,14 +163,14 @@ $x = a+u$\\
 $y = b+u$ \\
 $a+u+b = k$\\
 \begin{gather*}
-x \leq \ceil{\frac{k}{2}} \leq y \implies \\
+x \leq \ceil{\frac{k}{2}} \leq y \impliedby \\
 a+u \leq \ceil{\frac{a+u+b}{2}} \leq b+u 
 \end{gather*}
 Es wird zwischen u=0 und u=1 unterschieden:\\
-Im ersten Fall gilt: $a \leq \ceil{\frac{a+b}{2}} \leq b$, da der Durchschnitt immer zwischen seinen zwei Teilen liegt.\\
+Im ersten Fall gilt: $a \leq \ceil{\frac{a+b}{2}} \leq b$, da der Durchschnitt immer zwischen seinen zwei Teilen liegt und a und b ganz sind.\\
 Im zweiten Fall muss zwischen $(a+b) \mid 2$ und $(a+b) \nmid 2$ unterschieden werden. \\
 Falls $(a+b) \mid 2$ gilt $\ceil{\frac{a+b+1}{2}}$ = $\frac{a+b}{2}+1$.\\
-Das $ a+1 \leq \frac{a+b}{2}+1 \leq b+1$ wird bereits im ersten Fall gezeigt.\\
+Das $ a+1 \leq \frac{a+b}{2}+1 \leq b+1$ gilt aus dem gleichen Grund, wie im ersten Fall.\\
 Falls $(a+b) \nmid 2$:\\
 \begin{gather*}
 \ceil{\frac{a+b+1}{2}} = \frac{a+b}{2}+\frac{1}{2}\\
@@ -169,11 +179,11 @@ a+1\leq \frac{a+b}{2}+\frac{1}{2},\\ \text{da der einzige Fall in dem das nicht 
 \end{gather*}
 
 \subsection{Das komplette Verfahren}
-Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel einigermaßen schnel zu lösen. Je größer die Eingabe wird, desto größer wird auch die Größe der verwendeten Hashtabellen und benötigten Rams. 16 GB reichen aus um für beispiel4 8 Kerne parallel zu verwenden und das Beispiel in weniger als einer halben Stunde zu lösen. Es wäre denkbar für noch größerere Eingaben Ansatz 1 und 2 zu kombinieren, um den Speicherbedarf unter Kontrolle zu behalten.
+Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel einigermaßen schnel zu lösen. Je größer die Eingabe wird, desto größer wird auch die Größe der verwendeten Hashtabellen und benötigten Rams. 16 GB reichen aus um für Beispiel 4 8 Kerne parallel zu verwenden und das Beispiel in weniger als einer halben Stunde zu lösen. Es wäre denkbar für noch grösserere Eingaben Ansatz 1 und 2 zu kombinieren, um den Speicherbedarf unter Kontrolle zu behalten.
 
 
 \section{Umsetzung}
-Die Umsetzung ist in Rust geschrieben und verwendet die ''rand'' und ''ahash'' Pakete. Mehr zum letzteren Packet unter 2.2
+Die Umsetzung ist in Rust geschrieben und verwendet die ''rand'', ''serde'' und ''ahash'' Pakete. Mehr zum letzteren Packet unter 2.2
 
 \subsection{I/O}
 Die Eingabe und Ausgabe findet über die structs \textit{TInput} und \textit{TOutput} statt, die sich beide in ''io.rs'' befinden. 
@@ -198,7 +208,7 @@ Wenn die Zahlen nur 64-Bit hätten müsste man sie überhaupt nicht hashen und a
 Um die effiziente Berechnung von dp Werte zu erlauben, enthält ''structs'' noch \textit{DPArray}, ein bis zu 3-dimensionales Array. Dieses wird zum Beispiel von \textit{BinomC}, einem struct aus ''math.rs'', welches den Binomialkoeffizienten berechnet, verwendet.
 
 \subsection{Verarbeitung}
-Die Verarbeitung, welche in der "processing.rs" Datei implentiert ist, beginnt mit der \textit{process} Funktion. Diese erhält die Eingabe, sowie ein \textit{Constraints} Objekt, welches die Größe der gleichzeitig gespeicherten \textit{Combination} Werte begrenzt, sowie die Anzahl der gleichzeitig verwendeten Rechen-Threads. Es machen maximal so viele Threads Sinn, wie der CPU Cores hat. Die weitere Verarbeitung findet mit einem \textit{Solver} Objekt statt, welches die Methode \textit{shift\textunderscore search} besitzt. Diese Methode berechnet wie viele Threads tatsächlich parallel benutzt werden können, ohne zu viel Speicher zu verbrauchen, und spawnt dann diese Threads, wobei die HashMaps statt jedesmal neu erstellt zu werden zwischen den Threads ausgetauscht werden. Innerhalb eines dieser Rechen-Threads wird die Funktion verwendet:
+Die Verarbeitung, welche in der ''processing.rs'' Datei implentiert ist, beginnt mit der \textit{process} Funktion. Diese erhält die Eingabe, sowie ein \textit{Constraints} Objekt, welches die Größe der gleichzeitig gespeicherten \textit{Combination} Werte begrenzt, sowie die Anzahl der gleichzeitig verwendeten Rechen-Threads. Es machen maximal so viele Threads Sinn, wie der CPU Cores hat. Die weitere Verarbeitung findet mit einem \textit{Solver} Objekt statt, welches die Methode \textit{shift\textunderscore search} besitzt. Diese Methode berechnet wie viele Threads tatsächlich parallel benutzt werden können, ohne zu viel Speicher zu verbrauchen, und spawnt dann diese Threads, wobei die HashMaps statt jedesmal neu erstellt zu werden zwischen den Threads ausgetauscht werden. Innerhalb eines dieser Rechen-Threads wird folgende Funktion verwendet:
 \begin{minted}[breaklines]{rust}
 pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usize, shift: usize, target: u128, store: &mut T) -> SearchRes {
     let mut res: SearchRes = None;
@@ -207,30 +217,70 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
     let blocks = split_segment_simple(segment);
     let pass = assign_k_simple(blocks, l, r);
     store.clear();
-    enum_combs(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift, segment, Combination::default());
-    let mut it_func = |x: Combination| {
+    map_combs_adv(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift/*, Combination::default()*/);
+    let mut it_func = |x: &Combination| {
         let compl = x.0 ^ target;
         match store.get(compl) {
             Some(c) => {res = Some(x.combine(&Combination(compl, c)));},
             None => ()
         }
     };
-    enum_combs(nums, pass.it.1, &mut it_func, pass.it.0, shift, segment, Combination::default());
+    map_combs_adv(nums, pass.it.1, &mut it_func, pass.it.0, shift/*, Combination::default()*/);
     res
 }
 \end{minted}
-Die Funktionen \textit{split...simple} und \textit{assign...simple} teilen lediglich den vorgegeben Zahlenbereich in zwei Hälften auf. \textit{enum\textunderscore combs} geht alle Kombinationen der Länge k durch und ruft für jede Kombination eine Funktion auf. Diese ist für die eine Hälfte die Funktion, die die Kombination speichert und für die zweite Hälfte die Funktion \textit{it\textunderscore func}, die für die gegebene Kombination die entsprechende findet. 
+Die Funktionen \textit{split...simple} und \textit{assign...simple} teilen lediglich den vorgegeben Zahlenbereich in zwei Hälften auf. \textit{enum\textunderscore combs} ist eine rekursive Funktion, die eine zweite Funktion für alle Kombinationen der Länge k aufruft. Diese zweite Funktion ist für die eine Hälfte die Funktion, die die Kombination speichert \mint{rust}|store.insert(x.0, x.1);|und für die zweite Hälfte die Funktion \textit{it\textunderscore func}, die für die gegebene Kombination die entsprechende findet. \mint{rust}|store.get(compl)|
+Nachdem eine gültige k-Kombination gefunden wurde
+
+\subsubsection{Zu enum combs}
+Erkläre präfix und switching
 
 \subsection{Verifikation}
-Zufällige Menge an Zahlen unwahrscheinlich 
+Um sicherzustellen, dass die Implementierung nicht fehlerhaft ist, wird das Ergebnis mit \textit{TOutput.verify()} verifiziert. Zusätzlich sind in "testing.rs" Funktionen enthalten, die zufällige Eingaben generieren. Die Wahrscheinlichkeit, dass eine zufällige Eingabe eine gültige Kombination enthält kann geschätzt werden:
+\begin{equation}
+P = \binom{n}{k} \cdot (1-(\frac{2^{m}-1}{2^{m}})^{(n-k)})
+\end{equation}
+Da P in den meisten Fällen nahezu 0 ist, gibt es die Funktion \textit{generate\textunderscore solvable} die zufällige lösbare Eingaben generiert. 
 
 \section{Erweiterungen}
 
 \subsection{Verteilung des Rechenaufwands auf mehrere Computer}
+Obwohl das Programm dank Paralelisierung auch das schwerste Beispiel in weniger als einer halben Stunde lösen kann, gibt es immer noch Potential, den Lösungsvorgang zu beschleunigen. Die hier betrachtete Erweiterung ist ein einfaches Server-Client System, mit dem die Berechnung der verschiedenen Iteration auf mehrere Computer verteilt werden kann. 
 
+\subsection{Zusätzliche Implementierung des 1. Ansatzes}
+Ich habe den 1. Ansatz, sowie die in der Lösungsidee vorgestellten Optimierungen zuerst implementiert und habe erst später den 2. Ansatz gefunden. Um die aktuelle Implementierung lesbar zu halten, ist sie nicht mehr mit dem 1. Ansatz kompatibel, doch die Entwicklung der Implementierung und damit auch eine funktionierende Umsetzung des 1. Ansatzes findet man in ''BonusAufgabe\textunderscore old''. Die enthaltenen Dateien enthalten möglicherweise Fehler und sollten nicht kompiliert werden.
 
 \section{Beispiele}
 
+\textbf{Beispiel 0}\\
+\underline{Eingabe:}\textit{hexmax0.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe0.txt}
+
+\textbf{Beispiel 1}\\
+\underline{Eingabe:}\textit{hexmax1.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe1.txt}
+
+\textbf{Beispiel 2}\\
+\underline{Eingabe:}\textit{hexmax2.txt}\\
+\underline{Ausgabe:}
+\inputminted[breaklines, breakanywhere]{text}{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe2.txt}
+
+\textbf{Beispiel 0}\\
+\underline{Eingabe:}\textit{hexmax0.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe0.txt}
+
+\textbf{Beispiel 0}\\
+\underline{Eingabe:}\textit{hexmax0.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe0.txt}
+
+\textbf{Beispiel 5}\\
+\underline{Eingabe:}\textit{hexmax5.txt}\\
+\underline{Ausgabe:}
+\VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe5.txt}
 
 \section{Quellcode}
 
