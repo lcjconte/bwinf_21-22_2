@@ -1,8 +1,5 @@
-use std::fmt;
-
-use BonusAufgabe_proto::{io::TInput, structs::{SearchRes, Combination, u256}};
-use hyper::{Body, body::HttpBody, Response};
-use tokio::sync::{broadcast::Receiver, mpsc::Sender};
+use BonusAufgabe_proto::structs::SearchRes;
+use hyper::{Body, body::HttpBody};
 use serde::{Serialize, Deserialize};
 
 /// Request processing Assignment
@@ -16,15 +13,6 @@ pub struct ShiftAssignment(pub u32);
 /// Result of single shift processing (uuid, result, shift)
 #[derive(Serialize, Deserialize)]
 pub struct ShiftResult(pub u128, pub SearchRes, pub u32);
-
-/*impl fmt::Debug for Message {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "A message")
-    }
-}*/
-
-//TODO:
-//Check functional
 
 pub async fn get_json<T: serde::de::DeserializeOwned>(mut body: Body) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {
     let mut data = Vec::with_capacity(body.size_hint().lower() as usize);

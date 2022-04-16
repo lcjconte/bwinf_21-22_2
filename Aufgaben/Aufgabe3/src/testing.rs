@@ -1,4 +1,3 @@
-#![feature(test)]
 use super::io::*;
 use super::processing::*;
 use rand::thread_rng;
@@ -44,19 +43,5 @@ pub fn run_randomized(r: usize, maxn: usize, save_runtimes: bool) {
         }
         let wstring = wstring.join("\n");
         fs::write(&manifest_plus("benchmarks/runtimes1.txt"), wstring).unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn run_tests() {
-        let r = 200;let maxn = 500;
-        run_randomized(r, maxn, false);
-    }
-    #[test]
-    fn test_samples() {
-        run_samples();
     }
 }
