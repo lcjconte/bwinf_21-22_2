@@ -249,7 +249,7 @@ pub fn map_combs_simple(nums: &[u128], k: usize, func: &mut dyn FnMut(&Combinati
     }
 }
 \end{minted}
-Die Funktion wird jedoch sehr ineffizient, wenn $k > \frac{n}{2}$. \textit{map\textunderscore combs\textunderscore adv} unterscheidet sich von der vorherigen Funktion darin, dass sie vor der Rekursion erst ''Präfixxors'' der Karten berechnet und dann, wenn $k > \frac{n}{2}$ denn übrigen Zahlenbereich in konstanter Zeit ''invertiert''. Statt Zahlen auszusuchen, die in der Kombination sind, werden dann Zahlen ausgesucht, die nicht in der Kombination sind. Bild der Aufrufe
+Die Funktion wird jedoch sehr ineffizient, wenn $k > \frac{n}{2}$. \textit{map\textunderscore combs\textunderscore adv} unterscheidet sich von der vorherigen Funktion darin, dass sie vor der Rekursion erst ''Präfixxors'' der Karten berechnet und dann, wenn $k > \frac{n}{2}$ denn übrigen Zahlenbereich in konstanter Zeit ''invertiert''. Statt Zahlen auszusuchen, die in der Kombination sind, werden dann Zahlen ausgesucht, die nicht in der Kombination sind. %BILD DER AUFRUFE
 
 \subsection{Verifikation}
 Um sicherzustellen, dass die Implementierung nicht fehlerhaft ist, wird das Ergebnis mit \textit{TOutput.verify()} verifiziert. Zusätzlich sind in ''testing.rs'' Funktionen enthalten, die zufällige Eingaben generieren. Die Wahrscheinlichkeit, dass eine zufällige Eingabe eine gültige Kombination enthält kann geschätzt werden
@@ -261,7 +261,8 @@ Da P in den meisten Fällen nahezu 0 ist, gibt es die Funktion \textit{generate\
 \section{Erweiterungen}
 
 \subsection{Verteilung des Rechenaufwands auf mehrere Computer}
-Obwohl das Programm dank Paralelisierung auch das schwerste Beispiel in weniger als einer halben Stunde lösen kann, gibt es immer noch Potential, den Lösungsvorgang zu beschleunigen. Die hier betrachtete Erweiterung ist ein einfaches Server-Client System, mit dem die Berechnung der verschiedenen Iteration auf mehrere Computer verteilt werden kann. 
+Obwohl das Programm dank Paralelisierung auch das schwerste Beispiel in weniger als einer halben Stunde lösen kann, gibt es immer noch Potential, den Lösungsvorgang zu beschleunigen. Die hier betrachtete Erweiterung ist ein einfaches Server-Client System, mit dem die Berechnung der verschiedenen Iteration auf mehrere Computer verteilt werden kann. % SCHEMA
+\\ Für den Http Server und die Http Anfragen wird das ''hyper'' Packet verwendet, welches wiederum die ''tokio'' Laufzeit benutzt. 
 
 \subsection{Zusätzliche Implementierung des 1. Ansatzes}
 Ich habe den 1. Ansatz, sowie die in der Lösungsidee vorgestellten Optimierungen zuerst implementiert und habe erst später den 2. Ansatz gefunden. Um die aktuelle Implementierung lesbar zu halten, ist sie nicht mehr mit dem 1. Ansatz kompatibel, doch die Entwicklung der Implementierung und damit auch eine funktionierende Umsetzung des 1. Ansatzes findet man in ''BonusAufgabe\textunderscore old''. Die enthaltenen Dateien enthalten möglicherweise Fehler und sollten nicht kompiliert werden.
@@ -299,5 +300,7 @@ Ich habe den 1. Ansatz, sowie die in der Lösungsidee vorgestellten Optimierunge
 \VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe5.txt}
 
 \section{Quellcode}
+Es folgt der Quelltext von processing.rs, dem Kern des Programms.
+\inputminted[breaklines, breakanywhere]{rust}{../Aufgaben/Bonusaufgabe/src/processing.rs}
 
 \end{document}

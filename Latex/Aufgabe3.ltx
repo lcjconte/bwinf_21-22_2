@@ -112,7 +112,7 @@ f versucht an jeder Stelle alle möglichen Ziffern einzusetzen, un gibt dann die
 
 \subsection{Zusammenfassung und Laufzeit}
 Für den gesamten Algorithmus ergibt sich somit für das Finden des Lösungsstrings die Laufzeit $O(N \cdot \abs{Z} + N^2 \cdot \abs{Z})$, da die Werte von f gespeichert werden. Für die Hexadezimalziffern ist die Laufzeit also $O(N^2)$.
-Hat man einmal den Lösungsstring kann man mit der in 1.3 vorgestellten Strategie in linearer Laufzeit die Umlegungsschritte berechnen. BILD EINFÜGEN!
+Hat man einmal den Lösungsstring kann man mit der in 1.3 vorgestellten Strategie in linearer Laufzeit die Umlegungsschritte berechnen. %BILD EINFÜGEN!
 
 \section{Umsetzung}
 Die Umsetzung ist in Rust geschrieben und beinhaltet die ''serde\underbar json'' und ''rand'' Pakete. \\
@@ -166,7 +166,6 @@ Um die Umlegungen zu visualisieren gibt es ein Python script: visu.py
 \subsection{Verschiedene Ziffersysteme}
 Wenn man die chars.json Datei verändert, kann das Programm auch andere Ziffersysteme, also zum Beispiel mit mehr als 7 Segmenten verarbeiten.
 
-\subsection{Parallelisierung}
 
 \section{Beispiele}
 
