@@ -7,3 +7,8 @@ members = [
     "proto/BonusAufgabe_distributed",
     "proto/Bonusaufgabe"
 ]
+
+exclude = [
+    "Aufgaben/Aufgabe3",
+    "Aufgaben/Bonusaufgabe"
+]

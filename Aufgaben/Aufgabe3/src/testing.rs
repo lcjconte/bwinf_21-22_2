@@ -14,19 +14,19 @@ fn generate_testcase(n: usize) -> TInput {
 }
 
 pub fn run_samples() {
-    let chars = Characters::read_from(&manifest_plus("chars.json")).unwrap();
+    let chars = Characters::read_from("eingaben/chars.json").unwrap();
     for i in 0..6 {
         println!("Running hexmax{}.txt", i);
-        let input = TInput::read_from(&workspace_plus(format!("eingaben/Aufgabe3/hexmax{}.txt", i))).unwrap();
+        let input = TInput::read_from(&format!("eingaben/Aufgabe3/hexmax{}.txt", i)).unwrap();
         let output = process(&input, &chars, i < 3);
         assert!(output.verify(&chars));
         println!("Took {}ms", output.runtime);
-        fs::write(manifest_plus(format!("ausgaben/ausgabe{}.txt", i)), format!("{}", output)).unwrap();
+        fs::write(&format!("ausgaben/ausgabe{}.txt", i), format!("{}", output)).unwrap();
     }
 }
 
 pub fn run_randomized(r: usize, maxn: usize, save_runtimes: bool) {
-    let chars = Characters::read_from(&manifest_plus("chars.json")).unwrap();
+    let chars = Characters::read_from("chars.json").unwrap();
     let mut times: Vec<(usize, u128)> = vec![];
     for _ in 0..r {
         let input = generate_testcase(thread_rng().gen_range(1..maxn+1));
@@ -42,6 +42,6 @@ pub fn run_randomized(r: usize, maxn: usize, save_runtimes: bool) {
             wstring.push(format!("{} {}", ti.0, ti.1));
         }
         let wstring = wstring.join("\n");
-        fs::write(&manifest_plus("benchmarks/runtimes1.txt"), wstring).unwrap();
+        fs::write("benchmarks/runtimes1.txt", wstring).unwrap();
     }
 }

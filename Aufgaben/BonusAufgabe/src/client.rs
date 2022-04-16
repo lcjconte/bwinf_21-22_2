@@ -1,8 +1,7 @@
-use BonusAufgabe_proto::{processing::*, math::BinomC, structs::{HashMapStore, CombStore}, io::TInput};
+use Bonusaufgabe::{conv, processing::*, math::BinomC, structs::{HashMapStore, CombStore}, io::*};
 use hyper::{Client, StatusCode};
 use std::{env::args};
-use BonusAufgabe_distributed::*;
-use tokio::sync::{broadcast, oneshot, mpsc, Semaphore};
+use tokio::sync::{mpsc, Semaphore};
 use hyper::{Method, Body, Request};
 use std::sync::Arc;
 
@@ -12,7 +11,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let server_name = args().nth(1).unwrap();
     let jcount: usize = args().nth(2).unwrap().parse().unwrap();
     let mmultiplier: usize = args().nth(3).unwrap().parse().unwrap();
-
+    println!("Requesting input");
     let input: TInput = get_json(client.get((server_name.to_owned()+"/tinput").parse()?).await?.into_body()).await?;
     let nums = Arc::new(input.nums.clone());
     let binomc = BinomC::default();

@@ -2,10 +2,10 @@ use std::convert::Infallible;
 use std::env::args;
 use std::net::SocketAddr;
 use std::time::Instant;
-use BonusAufgabe_distributed::*;
-use BonusAufgabe_proto::io::{TInput, TOutput};
-use BonusAufgabe_proto::structs::SearchRes;
-use BonusAufgabe_proto::processing::combination_nums;
+use Bonusaufgabe::conv;
+use Bonusaufgabe::io::*;
+use Bonusaufgabe::structs::SearchRes;
+use Bonusaufgabe::processing::combination_nums;
 use tokio::sync::{broadcast, mpsc, RwLock};
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
@@ -24,6 +24,7 @@ struct Stuff {
 #[tokio::main]
 async fn main() {
     let fname = args().nth(1).unwrap();
+    println!("Serving assignments on port 3000");
     let input = Arc::new(TInput::read_from(fname).unwrap());
     let n = input.n;
     let start_time = Instant::now();
@@ -102,7 +103,7 @@ async fn serve_routes(mut _req: Request<Body>, stuff: Stuff) -> Result<Response<
     let input = stuff.input;
     match (_req.method(), _req.uri().path()) {
         (&Method::GET, "/tinput") => {
-            println!("Got tinput");
+            println!("Task input requested");
             *response.body_mut() = Body::from(serde_json::to_string(&(*input)).unwrap());
         },
         (&Method::POST, "/get_assignment") => { //Does nothing with request!
@@ -116,7 +117,6 @@ async fn serve_routes(mut _req: Request<Body>, stuff: Stuff) -> Result<Response<
             }
         },
         (&Method::POST, "/assignment_result") => {
-            println!("Got result");
             stuff.result_tx.send(get_json(_req.into_body()).await.unwrap()).ok();
         },
         _ => {

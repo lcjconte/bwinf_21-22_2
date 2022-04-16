@@ -6,18 +6,6 @@ use std::io::{BufReader, Read, BufRead};
 use std::path::{Path, PathBuf};
 use serde_json::Value;
 
-/// Returns manifest path plus argument
-pub fn manifest_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
-    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    d.push(plus);
-    d
-}
-/// Returns workspace path plus argument
-pub fn workspace_plus<P: AsRef<Path>>(plus: P) -> PathBuf {
-    let d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    d.join("..").join("..").join(plus)
-}
-
 #[derive(Clone)]
 pub struct TInput {
     pub m: u64,
@@ -25,7 +13,7 @@ pub struct TInput {
 }
 
 impl TInput {
-    pub fn read_from(file_name: &Path) -> Result<Self, Box<dyn Error>>{
+    pub fn read_from<T: AsRef<Path>>(file_name: T) -> Result<Self, Box<dyn Error>>{
         let mut obj = TInput { m: 0, s: String::new() };
         let file = File::open(file_name)?;
         let mut buf = String::new();
@@ -95,7 +83,7 @@ pub fn to_u32(s: &str) -> u32 {
 }
 
 impl Characters {
-    pub fn read_from(file_name: &Path) -> Result<Self, Box<dyn Error>> {
+    pub fn read_from<T: AsRef<Path>>(file_name: T) -> Result<Self, Box<dyn Error>> {
         let file = File::open(file_name)?;
         let mut s = String::new();
         BufReader::new(file).read_to_string(&mut s)?;

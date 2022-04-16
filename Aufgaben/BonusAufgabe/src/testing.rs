@@ -39,10 +39,8 @@ pub fn run_quick_samples() {
     }
 }
 
-#[cfg(test)]
 pub mod tests {
     use super::*;
-    #[test]
     fn run_random_tests() {
         let r = 100;let maxn = 50;
         for _ in 0..r {
@@ -52,7 +50,6 @@ pub mod tests {
             let _res = process(&input, &Constraints::new(10 * 1e7 as usize, 4));
         }
     }
-    #[test]
     pub fn run_solvable_tests() {
         let r = 100;let maxn = 50;
         for _ in 0..r {
@@ -63,7 +60,6 @@ pub mod tests {
             assert!(res.unwrap().verify());
         }
     }
-    #[test]
     pub fn test_quick_samples() {
         run_quick_samples();
     }

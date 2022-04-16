@@ -70,9 +70,8 @@ impl Display for TOutput {
 }
 
 // Additional code for client/server extension
-use Bonusaufgabe::structs::SearchRes;
+use crate::structs::SearchRes;
 use hyper::{Body, body::HttpBody};
-use serde::{Serialize, Deserialize};
 
 /// Request processing Assignment
 #[derive(Serialize, Deserialize)]
