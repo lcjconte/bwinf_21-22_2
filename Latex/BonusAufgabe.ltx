@@ -262,7 +262,7 @@ Da P in den meisten Fällen nahezu 0 ist, gibt es die Funktion \textit{generate\
 
 \subsection{Verteilung des Rechenaufwands auf mehrere Computer}
 Obwohl das Programm dank Paralelisierung auch das schwerste Beispiel in weniger als einer halben Stunde lösen kann, gibt es immer noch Potential, den Lösungsvorgang zu beschleunigen. Die hier betrachtete Erweiterung ist ein einfaches Server-Client System, mit dem die Berechnung der verschiedenen Iteration auf mehrere Computer verteilt werden kann. % SCHEMA
-\\ Für den Http Server und die Http Anfragen wird das ''hyper'' Packet verwendet, welches wiederum die ''tokio'' Laufzeit benutzt. 
+\\ Für den Http Server und die Http Anfragen wird das ''hyper'' Packet verwendet, welches wiederum die ''tokio'' Laufzeit benutzt. Die Implementation befindet sich jeweils in ''client.rs'' und ''server.rs''. Verbindet man zwei Computer mit je 4 Cores, kann so Beispiel 4 in ca. 10 Minuten gelöst werden.
 
 \subsection{Zusätzliche Implementierung des 1. Ansatzes}
 Ich habe den 1. Ansatz, sowie die in der Lösungsidee vorgestellten Optimierungen zuerst implementiert und habe erst später den 2. Ansatz gefunden. Um die aktuelle Implementierung lesbar zu halten, ist sie nicht mehr mit dem 1. Ansatz kompatibel, doch die Entwicklung der Implementierung und damit auch eine funktionierende Umsetzung des 1. Ansatzes findet man in ''BonusAufgabe\textunderscore old''. Die enthaltenen Dateien enthalten möglicherweise Fehler und sollten nicht kompiliert werden.

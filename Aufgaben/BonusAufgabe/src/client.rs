@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let input: TInput = get_json(client.get((server_name.to_owned()+"/tinput").parse()?).await?.into_body()).await?;
     let nums = Arc::new(input.nums.clone());
     let binomc = BinomC::default();
-    let n = input.n;let k = input.k;
+    let n = input.n;let k = input.k+1;
     let recap = binomc.binom(n/2, k/2) as usize;
     let cap = mmultiplier * 1e7 as usize;
     let rjcount = jcount.min(cap/recap);
