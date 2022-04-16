@@ -152,15 +152,6 @@ pub struct Solver {
     pub binomc: BinomC,
     pub cons: Constraints,
 }
-impl Solver {
-    fn new(nums: Arc<Vec<u128>>, cons: &Constraints) -> Self {
-        Solver {
-            nums,
-            binomc: BinomC::default(),
-            cons: cons.clone()
-        }
-    }
-}
 
 /// Search on limited segement if nums with equal distribution of k and specific shift
 pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usize, shift: usize, target: u128, store: &mut T) -> SearchRes {
@@ -170,7 +161,7 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
     let blocks = split_segment_simple(segment);
     let pass = assign_k_simple(blocks, l, r);
     store.clear();
-    map_combs_adv(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift/*, Combination::default()*/);
+    map_combs_adv(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift);
     let mut it_func = |x: &Combination| {
         let compl = x.0 ^ target;
         match store.get(compl) {
@@ -178,7 +169,7 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
             None => ()
         }
     };
-    map_combs_adv(nums, pass.it.1, &mut it_func, pass.it.0, shift/*, Combination::default()*/);
+    map_combs_adv(nums, pass.it.1, &mut it_func, pass.it.0, shift);
     res
 }
 
@@ -188,6 +179,13 @@ pub fn search_shift_thread<T: CombStore>(sender: Sender<(SearchRes, T)>, nums: A
 }
 
 impl Solver {
+    fn new(nums: Arc<Vec<u128>>, cons: &Constraints) -> Self {
+        Solver {
+            nums,
+            binomc: BinomC::default(),
+            cons: cons.clone()
+        }
+    }
     fn search(&self, segment: Segment, k: usize, target: u128) -> SearchRes {
         self.shift_search(segment, k, target)
     }

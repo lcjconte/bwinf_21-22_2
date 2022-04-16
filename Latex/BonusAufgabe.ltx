@@ -133,11 +133,11 @@ Allgemein entsprechen bei der Iteration s: \\
 Die erste Hälfte $L_s$ := $[s;s+\ceil{N/2})$ \\
 Die Zweite Hälfte $R_s$ := $Z \setminus L_s$ \\
 \textbf{Hilfssatz: Für jede k-Kombination aus Z existiert mindestens ein $0 <= s <= \floor{\frac{N}{2}}$ , so dass $\ceil{\frac{k}{2}}$ der Elemente der k-Kombination in $L_s$ sind} und daraus folgend $\floor{\frac{k}{2}}$ in $R_s$. \\
-Aus dem Hilfssatz folgt die Korrektheit des Verfahrens, da dann jede k-Kombination bei mindestens einer Iteration in Betracht gezogen wird. Die Laufzeit des zweiten Verfahrens ist ca. $O(N*\binom{N/2}{k/2})$
+Aus dem Hilfssatz folgt die Korrektheit des Verfahrens, da dann jede k-Kombination bei mindestens einer Iteration in Betracht gezogen wird. 
 
 \subsubsection{Beweis des Hilfssatzes}
 Um denn Satz zu beweisen, reicht es zu zeigen, dass für eine beliebige k-Kombination C ein s gefunden werden kann, dass die erwartete Bedingung erfüllt. \\
-$z_s$ sei die Anzahl der Kombinationselemente in der ersten Hälfte: $z_s := \abs{ K \cap L_s }$\\
+$z_s$ sei die Anzahl der Kombinationselemente in der ersten Hälfte: $z_s := \abs{ C \cap L_s }$\\
 $x := z_0$\\
 $y := z_{\floor{\frac{N}{2}}}$\\
 Zentral für den Beweis ist folgende Beobachtung über die Veränderung von $z_s$ bei Änderung von s:\\
@@ -149,7 +149,7 @@ Zentral für den Beweis ist folgende Beobachtung über die Veränderung von $z_s
 \end{cases}
 \end{equation}
 Dies ergibt sich daraus, dass bei einer ''Verschiebung'' von $L_s$ maximal ein Element entfernt werden muss und maximal eines hinzugefügt werden muss.\\
-Um den Satz zu beweisen muss nun gezeigt werden, dass: 
+Da jede ganze Zahl zwischen inklusiv x und inklusiv y deswegen sicher bei einer Iteration $z_s$ entspricht, muss nun gezeigt werden, dass: 
 \begin{equation}\ceil{\frac{k}{2}} \text{ zwischen inklusiv $x$ und $y$ liegt.} \end{equation}
 Der Beweis wird nur für $x \leq y$ geführt, kann jedoch symmetrisch (mann muss x mit y tauschen) auch für $y \leq x$ geführt werden.
 
@@ -179,20 +179,21 @@ a+1\leq \frac{a+b}{2}+\frac{1}{2},\\ \text{da der einzige Fall in dem das nicht 
 \end{gather*}
 
 \subsection{Das komplette Verfahren}
-Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel einigermaßen schnel zu lösen. Je größer die Eingabe wird, desto größer wird auch die Größe der verwendeten Hashtabellen und benötigten Rams. 16 GB reichen aus um für Beispiel 4 8 Kerne parallel zu verwenden und das Beispiel in weniger als einer halben Stunde zu lösen. Es wäre denkbar für noch grösserere Eingaben Ansatz 1 und 2 zu kombinieren, um den Speicherbedarf unter Kontrolle zu behalten.
+Die Laufzeit des zweiten Ansatzes ist $O(N \cdot \binom{N/2}{k/2})$, wobei der zweite Faktor eigentlich eabhängig von der Laufzeit ist, mit der man alle Kombinationen tatsächlich iterieren kann. Siehe 2.3.1
+Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel einigermaßen schnell zu lösen. Je größer die Eingabe wird, desto größer wird auch die Größe der verwendeten Hashtabellen und benötigten Rams. 16 GB reichen aus um für Beispiel 4 8 Kerne parallel zu verwenden und das Beispiel in weniger als einer halben Stunde zu lösen. Es wäre denkbar für noch größerere Eingaben Ansatz 1 und 2 zu kombinieren, um den Speicherbedarf unter Kontrolle zu behalten.
 
 
 \section{Umsetzung}
-Die Umsetzung ist in Rust geschrieben und verwendet die ''rand'', ''serde'' und ''ahash'' Pakete. Mehr zum letzteren Packet unter 2.2
+Die Umsetzung ist in Rust geschrieben und verwendet die ''rand'', ''serde'' und ''ahash'' Pakete. Mehr zum letzteren Packet unter 2.2. Für Windows und x86-Linux kompilierte Programme findet man in /bin
 
 \subsection{I/O}
 Die Eingabe und Ausgabe findet über die structs \textit{TInput} und \textit{TOutput} statt, die sich beide in ''io.rs'' befinden. 
-In dieser Datei sind auch die Obergrenzen festgelegt: $N \leq 255$ und $k \leq 20$. 
+In dieser Datei sind auch die Obergrenzen für die Berechnung des Binomialkoeffizienten festgelegt: $N \leq 256$ und $k \leq 20$. 
 
 \subsection{Strukturen}
 Die Implementierung verwendet ausschließlich 128 Bit Zahlen als Darstellung der Schlüsselkarten, da keine der Beispielsangaben größere Zahlen verlangt und flexibel große Zahlen die Verarbeitung nicht entscheidend beschleunigen würden. Trotzdem enthält die Datei, ''structs.rs'', die verschiedene nützliche Strukturen enthält, auch eine sehr einfache Implementierung einer 256-Bit Zahl: \textit{u256}. Benutzt wird diese Zahl von dem struct \textit{Combination}. Dieses struct enthält für eine Kombination deren $xor$ Wert, sowie die Elemente der Kombination als 256-Bit Bitmaske. \textit{Combination} können mittels \textit{add} weitere Elemente hinzugefügt werden und mit \textit{combine} können zwei Objekte kombiniert werden. 
 
-Die Kombinationen werden in einer nativen \textit{Hashmap<u128, u256>} gespeichert, welche die $xor$ Werte als Schlüssel hat und die Kombinationsmasken als Wert. Die Hashmap ist in hinter dem struct \textit{HashMapStore} versteckt welches über die Implementierung des folgenden Interfaces benutzt wird
+Die Kombinationen werden in einer \textit{Hashmap<u128, u256>} gespeichert, welche die $xor$ Werte als Schlüssel hat und die Kombinationsmasken als Wert. Die Hashmap ist in hinter dem struct \textit{HashMapStore} versteckt welches über die Implementierung des folgenden Interfaces benutzt wird
 \begin{minted}{rust}
 pub trait CombStore : Clone {
     fn new(size: usize) -> Self;
@@ -217,7 +218,7 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
     let blocks = split_segment_simple(segment);
     let pass = assign_k_simple(blocks, l, r);
     store.clear();
-    map_combs_adv(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift/*, Combination::default()*/);
+    map_combs_adv(nums, pass.ca.1, &mut |x| {store.insert(x.0, x.1);}, pass.ca.0, shift);
     let mut it_func = |x: &Combination| {
         let compl = x.0 ^ target;
         match store.get(compl) {
@@ -225,18 +226,33 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
             None => ()
         }
     };
-    map_combs_adv(nums, pass.it.1, &mut it_func, pass.it.0, shift/*, Combination::default()*/);
+    map_combs_adv(nums, pass.it.1, &mut it_func, pass.it.0, shift);
     res
 }
 \end{minted}
-Die Funktionen \textit{split...simple} und \textit{assign...simple} teilen lediglich den vorgegeben Zahlenbereich in zwei Hälften auf. \textit{enum\textunderscore combs} ist eine rekursive Funktion, die eine zweite Funktion für alle Kombinationen der Länge k aufruft. Diese zweite Funktion ist für die eine Hälfte die Funktion, die die Kombination speichert \mint{rust}|store.insert(x.0, x.1);|und für die zweite Hälfte die Funktion \textit{it\textunderscore func}, die für die gegebene Kombination die entsprechende findet. \mint{rust}|store.get(compl)|
-Nachdem eine gültige k-Kombination gefunden wurde
+Die Funktionen \textit{split...simple} und \textit{assign...simple} teilen lediglich den vorgegeben Zahlenbereich in zwei Hälften auf. \textit{map\textunderscore combs\textunderscore adv} ruft eine zweite Funktion für alle Kombinationen der Länge k aufruft. Diese zweite Funktion ist für die eine Hälfte die Funktion, die die Kombination speichert \mint{rust}|store.insert(x.0, x.1);|und für die zweite Hälfte die Funktion \textit{it\textunderscore func}, die für die gegebene Kombination die entsprechende findet. \mint{rust}|store.get(compl)|
+Nachdem eine gültige k-Kombination gefunden wurde werde die enthaltenen Zahlen mit \textit{combination\textunderscore nums} aus der Bitmaske gelesen.
 
-\subsubsection{Zu enum combs}
-Erkläre präfix und switching
+\subsubsection{Zu \textit{map\textunderscore combs\textunderscore adv}}
+Wie kann man möglichst effizient über alle Kombinationen iterieren? Die folgende Funktion bietet eine einfache Lösung:
+\begin{minted}[breaklines]{rust}
+pub fn map_combs_simple(nums: &[u128], k: usize, func: &mut dyn FnMut(&Combination), block: Segment, shift: usize, cur: Combination) {
+    assert!(block.1 <= nums.len());
+    if k == 0 {
+        func(&cur);
+        return;
+    }
+    if block.0==block.1 {return;}
+    for i in block.0..block.1 {
+        let num_idx = (i+shift) % nums.len();
+        map_combs_simple(nums, k-1, func, Segment(i+1, block.1), shift, cur.add(nums[num_idx], num_idx));
+    }
+}
+\end{minted}
+Die Funktion wird jedoch sehr ineffizient, wenn $k > \frac{n}{2}$. \textit{map\textunderscore combs\textunderscore adv} unterscheidet sich von der vorherigen Funktion darin, dass sie vor der Rekursion erst ''Präfixxors'' der Karten berechnet und dann, wenn $k > \frac{n}{2}$ denn übrigen Zahlenbereich in konstanter Zeit ''invertiert''. Statt Zahlen auszusuchen, die in der Kombination sind, werden dann Zahlen ausgesucht, die nicht in der Kombination sind. Bild der Aufrufe
 
 \subsection{Verifikation}
-Um sicherzustellen, dass die Implementierung nicht fehlerhaft ist, wird das Ergebnis mit \textit{TOutput.verify()} verifiziert. Zusätzlich sind in "testing.rs" Funktionen enthalten, die zufällige Eingaben generieren. Die Wahrscheinlichkeit, dass eine zufällige Eingabe eine gültige Kombination enthält kann geschätzt werden:
+Um sicherzustellen, dass die Implementierung nicht fehlerhaft ist, wird das Ergebnis mit \textit{TOutput.verify()} verifiziert. Zusätzlich sind in ''testing.rs'' Funktionen enthalten, die zufällige Eingaben generieren. Die Wahrscheinlichkeit, dass eine zufällige Eingabe eine gültige Kombination enthält kann geschätzt werden
 \begin{equation}
 P = \binom{n}{k} \cdot (1-(\frac{2^{m}-1}{2^{m}})^{(n-k)})
 \end{equation}

@@ -35,7 +35,7 @@ pub fn run_quick_samples() {
         let input = TInput::read_from(&format!("eingaben/stapel{}.txt", i)).unwrap();
         let output = process(&input, &Constraints::new(10 * 1e7 as usize, 4)).unwrap();
         assert!(output.verify());
-        fs::write(format!("ausgaben/ausgabe{}.txt", i), format!("{}", output)).unwrap();
+        //fs::write(format!("ausgaben/ausgabe{}.txt", i), format!("{}", output)).unwrap();
     }
 }
 
@@ -48,7 +48,7 @@ pub mod tests {
         for _ in 0..r {
             let n = thread_rng().gen_range(2..maxn);
             let maxk = MAXK.min(n-1);
-            let input = generate_random(n, thread_rng().gen_range(1..maxk+1));
+            let input = generate_random(n, thread_rng().gen_range(1..=maxk));
             let _res = process(&input, &Constraints::new(10 * 1e7 as usize, 4));
         }
     }
@@ -58,7 +58,7 @@ pub mod tests {
         for _ in 0..r {
             let n = thread_rng().gen_range(2..maxn);
             let maxk = MAXK.min(n-1);
-            let input = generate_solvable(n, thread_rng().gen_range(1..maxk+1));
+            let input = generate_solvable(n, thread_rng().gen_range(1..=maxk));
             let res = process(&input, &Constraints::new(10 * 1e7 as usize, 4));
             assert!(res.unwrap().verify());
         }
