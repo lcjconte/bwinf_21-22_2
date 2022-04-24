@@ -1,3 +1,6 @@
+
+// This version uses a custom BitVec later called u256
+
 #![allow(dead_code)]
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -10,7 +13,6 @@ use super::common::*;
 use super::ISolver;
 
 //[lo;hi)
-// This version uses a custom BitVec later called u256
 pub struct Solver<'a> {
     t_input: Option<&'a TInput>,
     nums: Vec<u128>,

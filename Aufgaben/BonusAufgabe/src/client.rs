@@ -1,3 +1,4 @@
+/// Client binary | expects cmd args <server url> <max parallel threads> <max stored items / 1e7>
 use Bonusaufgabe::{conv, processing::*, math::BinomC, structs::{HashMapStore, CombStore}, io::*};
 use hyper::{Client, StatusCode};
 use std::{env::args};
@@ -27,12 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tokio::spawn(async move {
         loop {
             let permit = sem.clone().acquire_owned().await.unwrap();
-            let req = Request::builder()
-                    .method(Method::POST)
-                    .uri(mserver_name.to_owned()+"/get_assignment")
-                    .header("content-type", "application/json")
-                    .body(Body::from(serde_json::to_string(&ShiftRequest(0)).unwrap())).unwrap();
-            let resp = mclient.request(req).await;
+            let resp = mclient.get(conv!(mserver_name.to_owned()+"/get_assignment")).await;
             if resp.is_err() {
                 println!("Error getting assignment!");
                 break;
@@ -57,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .method(Method::POST)
             .uri(server_name.to_owned()+"/assignment_result")
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(&ShiftResult(0, r, 0)).unwrap())).unwrap();
+            .body(Body::from(serde_json::to_string(&ShiftResult(r, 0)).unwrap())).unwrap();
         client.request(req).await.ok();
     }
     println!("Done!");

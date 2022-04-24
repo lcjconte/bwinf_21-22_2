@@ -1,8 +1,9 @@
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-from time import sleep
 import json
+import sys
+from time import sleep
+
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 
 fig, ax = plt.subplots()
 
@@ -44,16 +45,18 @@ class Digit:
             i.remove()
         self.pat = []
 import glob
+
 from PIL import Image
 
 # filepaths
 fp_in = "proto/Aufgabe3/frames/a*.png"
 fp_out = "proto/Aufgabe3/res.gif"
 
-
-chars = json.load(open("proto/Aufgabe3/chars.json"))
-
-with open("proto/Aufgabe3/ausgaben/ausgabe1.txt", "r") as fin:
+char_path = sys.argv[1]
+with open(char_path, "r") as cfile:
+    chars = json.load(cfile)
+input_path = sys.argv[2]
+with open(input_path, "r") as fin:
     lin = fin.readlines()
 w = len(lin[0].strip())
 digits = [Digit((0.75*i, 0), 0.1) for i in range(w)]
@@ -62,7 +65,7 @@ for t, li in enumerate(lin[2:]):
     items = li.split(" ")[4:]
     for i, el in enumerate(items):
         digits[i].draw(int(el))
-    plt.savefig(f"proto/Aufgabe3/frames/a{t}.png")
+    plt.savefig(f"frames/a{t}.png")
     for i in digits:
         i.clear()
 imgs = (Image.open(f) for f in sorted(glob.glob(fp_in)))

@@ -7,6 +7,7 @@ use std::path::Path;
 use serde::{Serialize, Deserialize};
 
 pub const MAXN: usize = 256;
+/// k = N-MAXK also possible!
 pub const MAXK: usize = 20;
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
@@ -73,17 +74,13 @@ impl Display for TOutput {
 use crate::structs::SearchRes;
 use hyper::{Body, body::HttpBody};
 
-/// Request processing Assignment
-#[derive(Serialize, Deserialize)]
-pub struct ShiftRequest(pub u128);
-
 /// Assignment to process shift
 #[derive(Serialize, Deserialize)]
 pub struct ShiftAssignment(pub u32);
 
 /// Result of single shift processing (uuid, result, shift)
 #[derive(Serialize, Deserialize)]
-pub struct ShiftResult(pub u128, pub SearchRes, pub u32);
+pub struct ShiftResult(pub SearchRes, pub u32);
 
 pub async fn get_json<T: serde::de::DeserializeOwned>(mut body: Body) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {
     let mut data = Vec::with_capacity(body.size_hint().lower() as usize);

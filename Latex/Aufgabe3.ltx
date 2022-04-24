@@ -92,11 +92,11 @@ Es muss an dieser Stelle hinzugefügt werden, dass das gerade erklärte System m
 Damit ein String nach mehrern Transformationen, die dazu führen, dass $g=0 \land k \leq M$, auch im Sinne der Aufgabenstellung gültig ist muss noch folgendes gezeigt werden.
 
 \subsection{Weshalb eine Ziffer nie komplett leer ist}
-Wird ein String in einen String mit gleicher Anzahl an Segmenten umgeformt, dann ist diese Umformung möglich ohne, dass je eine Ziffer komplett leer ist. Folgende Umlegungsstrategie sorgt dafür: \\
+Wird ein String in einen String mit gleicher Anzahl an Segmenten umgeformt, dann ist diese Umformung möglich, ohne dass je eine Ziffer komplett leer ist. Folgende Umlegungsstrategie sorgt dafür: \\
 In einem ersten Durchgang merkt man sich alle Segmentpositionen die verändert werden müssen, dann verändert man alle gegensätzlichen Paare, also entfernen - hinzufügen, die in der gleichen Ziffer liegen. Nun ist immernoch keine Ziffer leer. Dann löst man alle anderen Paare auf, wobei auch hier eine Ziffer nie leer wird, da die bei der internen Auflösung bewegten Segmente an ihren Positionen bleiben, und die Segmente die überhaupt nicht bewegt werden müssen auch belegt bleiben. 
 
 \subsection{Finden der größten Hexzahl}
-Der Lösungsstring wird Ziffer für Ziffer zusammengesetzt. Damit der resultierende String so groß wie möglich ist werden in absteigender Reihenfolge die möglichen bedeutendsten Ziffern getestet. Der allererste Schritt für $\alpha=``D24``$ ist also zu bestimmen, was die minimalen Kosten für $``D24`` \rar ``F--``$ sind. Der Suffix ist unbestimmt, da seine lexikographische Größe weniger wichtig als die der bedeutendsten Stelle ist. $D \rar F$ resultiert in g = 1 für den Suffix. Dieser Suffix muss also ausgehend von g=1 "balanciert" werden, also mit minimalen Kosten so umgeformt werden, dass g zu 0 wird. Die minimalen Kosten für die balancierung des Suffixes seien $f(i, g)$ wobei i die bedeutendste Stelle des Suffixes ist und g das Ungleichgewicht. Wenn $k_{D \rar F} + f(1, 1) \leq M$ wäre, könnte man jetzt die 0. Stelle der Lösung auf F festlegen, doch im Beispiel ist das nicht der Fall. Also geht man weiter zu Umformung in die nächstkleinere Ziffer E und so weiter. Hat man die bedeutendste Ziffer bestimmt, geht man zu nächstbedeutendsten über.\\
+Der Lösungsstring wird Ziffer für Ziffer zusammengesetzt. Damit der resultierende String so groß wie möglich ist werden in absteigender Reihenfolge die möglichen bedeutendsten Ziffern getestet. Der allererste Schritt für $\alpha=``D24``$ ist also zu bestimmen, was die minimalen Kosten für $``D24`` \rar ``F--``$ sind. Der Suffix ist unbestimmt, da seine lexikographische Größe weniger wichtig als die der bedeutendsten Stelle ist. $D \rar F$ resultiert in g = 1 für den Suffix. Dieser Suffix muss also ausgehend von g=1 ''balanciert'' werden, also mit minimalen Kosten so umgeformt werden, dass g zu 0 wird. Die minimalen Kosten für die balancierung des Suffixes seien $f(i, g)$ wobei i die bedeutendste Stelle des Suffixes ist und g das Ungleichgewicht. Wenn $k_{D \rar F} + f(1, 1) \leq M$ wäre, könnte man jetzt die 0. Stelle der Lösung auf F festlegen, doch im Beispiel ist das nicht der Fall. Also geht man weiter zu Umformung in die nächstkleinere Ziffer E und so weiter. Hat man die bedeutendste Ziffer bestimmt, geht man zu nächstbedeutendsten über.\\
 Zusammengefasst wird die Lösung also Ziffer für Ziffer, beginnend bei der bedeutendsten Stelle, zusammengesetzt. Ausgehend von den Kosten für die bisherigen Transformationen und dem aus diesen resultierten Ungleichgewicht, wird die aktuelle Stelle in die größtmöglichste Ziffer transformiert. Dass die Kosten am Schluss nicht M übersteigen und dass der resultierende String gleich viele Segmente wie das Original enthält, wird von f garantiert. Da jedesmal die größtemöglichste Ziffer gewählt wird, ist auch das Ergebnis maximal.
 
 \subsection{f(i, g)}
@@ -115,7 +115,7 @@ Für den gesamten Algorithmus ergibt sich somit für das Finden des Lösungsstri
 Hat man einmal den Lösungsstring kann man mit der in 1.3 vorgestellten Strategie in linearer Laufzeit die Umlegungsschritte berechnen. %BILD EINFÜGEN!
 
 \section{Umsetzung}
-Die Umsetzung ist in Rust geschrieben und beinhaltet die ''serde\underbar json'' und ''rand'' Pakete. \\
+Die Umsetzung ist in Rust geschrieben und beinhaltet die ''serde\underbar json'' und ''rand'' Pakete. Für Windows und arm64-Macos kompilierte Programme findet man in /bin
 \subsection{I/O}
 Eingabe und Ausgabe Funktionen sind in ''io.rs'' enthalten. Die structs \textit{TInput} und \textit{TOutput} handhaben das Einlesen der Problemstellungen und die Ausgabe der Lösungen. Um verschiedene Ziffersysteme zu erlauben, liest der \emph{Characters} struct die Informationen zu den verfügbaren Ziffern aus einer json Datei. Die ''chars.json'' Datei enthält das verwendete Hexadezimalsystem. In der Datei wird jeder Ziffer ein Bitstring zugewiesen, der die Segmente beschreibt. Während der Verarbeitung werden Objekte der \emph{Character} Klasse verwendet. Diese werden auch von \emph{Characters} bereitgestellt. 
 
@@ -158,13 +158,14 @@ Das Ausgabe Format ist:\\
 <Lösungsstring>\\
 <Benötigte zeit in ms>\\
 (<von Charakter>, <von Segment>) (<zu Charakter>, <zu Segment>) <Maske erster Ziffer> $\backslash$ \\<Masker zweiter Ziffer> ...\\
-<weiter die Umlegungen beschreibende Zeilen>\\
-Um die Umlegungen zu visualisieren gibt es ein Python script: visu.py
+<weiter die Umlegungen beschreibende Zeilen>
+
+Um die Umlegungen zu visualisieren gibt es ein Python script: visu.py. Mit diesem können die Umlegungen als GIF visualisiert werden. Bereits erstellte GIFs befinden liegen bei.
 
 \section{Erweiterungen}
 
 \subsection{Verschiedene Ziffersysteme}
-Wenn man die chars.json Datei verändert, kann das Programm auch andere Ziffersysteme, also zum Beispiel mit mehr als 7 Segmenten verarbeiten.
+Wenn man die chars.json Datei verändert, kann das Programm auch andere Ziffersysteme, also zum Beispiel Ziffern mit mehr als 7 Segmenten verarbeiten.
 
 
 \section{Beispiele}

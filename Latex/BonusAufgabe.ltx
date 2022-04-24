@@ -28,6 +28,7 @@
 
 % Für Bilder
 \usepackage{graphicx}
+\usepackage{wrapfig}
 
 % Für Algorithmen
 \usepackage{algpseudocode}
@@ -68,7 +69,7 @@ Man kann also die Sicherungskarte nicht von den Karten unterscheiden, aus denen 
 Es seien:
 \[ Z := \text{Indizes in } [0;N) \]
 \[\text{Für eine Indexmenge z: } xor(z) := \bigoplus_{x \in z}{a_x}\]
-Es ist also die Menge $I$ gesucht, für die gilt $\abs{I}=k$ und  $xor(I) = 0$
+Es ist also die Zahlenmenge $I$ gesucht, für die gilt $\abs{I}=k$ und  $xor(I) = 0$
 Das Verfahren zum Finden der Menge I wird abgesehen vom nächsten Block im Rest der Dokumentation erklärt.
 
 \subsection{Problem b)}
@@ -82,7 +83,7 @@ $\binom{N}{k}\approx 4.7 \cdot 10^{14}$ viele Möglichkeiten. Diese alle einzeln
 
 \subsection{Effizientere Suche durch Hashtable Strukur}
 Die gegebenen Zahlen werden in zwei Hälften L und R geteilt.
-Angenommen folgende Information ist bekannt: l Indizes liegen in L und r Indizes liegen in R
+Angenommen folgende Information ist bekannt: l Indizes liegen in L und r Indizes liegen in R.
 Eine l-Kombination an Indizes $K_1$ aus der ersten Hälfte ist dann teil eines möglichen I, wenn eine korrespondierende r-Kombination an Indizes $K_2$ aus der zweiten Hälfte existiert, so dass:
 \begin{align*}
 xor(K_1) \oplus xor(K_2) = 0  \\
@@ -105,7 +106,7 @@ si(n, l, r) = \min{(\binom{n/2}{l}^\Sigma + \binom{n/2}{r}^\Sigma, \quad \binom{
 \end{gather*}
 $si$ soll minimiert werden. In der oben gezeigten Formel ist das 1. Argument von $\min$ die Schrittzahl für eine ''lokale'' Suche und das 2. Argument die Schrittzahl der Rekursion. Um $es$ während der Verarbeitung effizient zu berechnen werden die Ergebnisse gespeichert, was in einer Laufzeit $O(N^2)$ (für $es$) resultiert. 
 
-$\binom{n}{k}^\Sigma$ ist eine Approximation für die zur Iteration aller Kombinationen benötigte Schrittzahl für "kleine" k's. In 2.3.1 wird eine effizientere Methode gezeigt.
+$\binom{n}{k}^\Sigma$ ist eine Approximation für die zur Enumeration aller Kombinationen benötigte Schrittzahl für "kleine" k's. In 1.7 wird eine effizientere Methode gezeigt.
 
 \subsubsection{Halbierung der Menge an auszuprobierenden (l, r) Paaren}
 Wenn die Zahlen vor der Verarbeitung sortiert werden, kann man sie statt exakt in der Hälfte, beim Übergang des bedeutendsten Bits teilen. So kann man bestimmte (l,r) Paare ausschließen, da für keine ungerade Kombination von Zahlen z, die alle an Stelle x ein gesetztes Bit haben, $xor(z) = 0$ gilt.
@@ -117,7 +118,7 @@ Es sind die Paare (l, r) am aufwendigsten, bei denen l und r weit auseinander li
 \[
 \frac{\binom{56}{0}+\binom{55}{11}}{\binom{56}{5} + \binom{55}{5}} \approx 3.3 \cdot 10^3 
 \]
-Der folgend beschriebene Algorithmus iteriert über verschiedene Zusammensetzung der Hälften und belässt dabei die l r Verteilung gleich, so dass l und r so nah aneinander wie möglich sind.
+Der folgende Algorithmus iteriert über verschiedene Zusammensetzung der Hälften und belässt dabei die l r Verteilung gleich, so dass l und r so nah aneinander wie möglich sind.
 Es werden maximal $\floor{\frac{N}{2}}+1$ Iterationen benötigt und diese werden von 0 an in einer Schritten gezählt.
 Wie werden die Hälften zusammengesetzt und ist garantiert, dass alle Kombinationen betrachtet werden? \\
 Die Hälften kann man sich als zusammenhängende Bereiche vorstellen, die bei jeder Iteration verschoben werden.
@@ -178,33 +179,44 @@ Falls $(a+b) \nmid 2$:\\
 a+1\leq \frac{a+b}{2}+\frac{1}{2},\\ \text{da der einzige Fall in dem das nicht so wäre a=b fordert und dies $(a+b) \nmid 2$ wiederspricht.}
 \end{gather*}
 
-\subsection{Das komplette Verfahren}
-Die Laufzeit des zweiten Ansatzes ist $O(N \cdot \binom{N/2}{k/2})$, wobei der zweite Faktor eigentlich eabhängig von der Laufzeit ist, mit der man alle Kombinationen tatsächlich iterieren kann. Siehe 2.3.1
-Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel einigermaßen schnell zu lösen. Je größer die Eingabe wird, desto größer wird auch die Größe der verwendeten Hashtabellen und benötigten Rams. 16 GB reichen aus um für Beispiel 4 8 Kerne parallel zu verwenden und das Beispiel in weniger als einer halben Stunde zu lösen. Es wäre denkbar für noch größerere Eingaben Ansatz 1 und 2 zu kombinieren, um den Speicherbedarf unter Kontrolle zu behalten.
+\subsection{Enumeration der Kombinationen}
+Bisher ist die Laufzeit mindestens $O(N \cdot (\binom{N/2}{k/2}+x))$, wobei x von der Methode abhängt, mit der die $\binom{N/2}{k/2}$ Kombinationen enumeriert werden. Eine einfache rekursive Methode wäre: 
+\begin{minted}{python}
+def durchsuche_kombinationen(k: usize, lo, hi, kombination) {
+  if k == 0: #Kombination voll
+    mache_etwas_mit(kombination)
+    return
+  if lo == hi: #Nicht genügend Zahlen übrig
+    return
+  for i in range(lo, hi):
+    durchsuche_kombinationen(k-1, i+1, hi, kombination.und(zahlen[i]))
+\end{minted}
 
+\begin{wrapfigure}{r}{0.35\textwidth}
+    \centering
+    \includegraphics[width=0.35\textwidth]{enum_combs}
+\end{wrapfigure}
+
+Diese Funktion wird jedoch ineffizient, wenn $k > \frac{n}{2}$. Die Funktion kann in diesem Fällen beschleunigt werden, wenn statt Zahlen zur Kombination hinzuzufügen, zuerst alle übrigen hinzugefügt werden und dann $n-k$ entfernt werden. Um den übrigen Bereich schnell hinzufügen zu können, werden vor der Verarbeitung ''Präfixxors'' berechnet, die eine ''Invertierung'' des übrigen Bereichs in konstanter Zeit ermöglichen, wodurch k zu $n-k$ wird. Dieses neue Verfahren benötigt weniger rekursive Aufrufe, wie man in der Graphik sehen kann. 
+
+\subsection{Das komplette Verfahren}
+Die Laufzeit des Algorithmus ist also ungefähr $O(N \cdot \binom{N/2}{k/2})$, wobei die Laufzeit des Enumerationsverfahrens nur geschätzt ist, aber auf jeden Fall $<O(\binom{N/2}{k/2}^\Sigma)$ ist.
+Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel einigermaßen schnell zu lösen. Je größer die Eingabe wird, desto größer wird auch die Größe der verwendeten Hashtabellen und benötigten Rams. 16 GB reichen aus um für Beispiel4 4 Kerne parallel zu verwenden und das Beispiel in weniger als einer halben Stunde zu lösen. Es wäre denkbar für noch größere Eingaben Ansatz 1 und 2 zu kombinieren, um den Speicherbedarf unter Kontrolle zu behalten.
 
 \section{Umsetzung}
-Die Umsetzung ist in Rust geschrieben und verwendet die ''rand'', ''serde'' und ''ahash'' Pakete. Mehr zum letzteren Packet unter 2.2. Für Windows und x86-Linux kompilierte Programme findet man in /bin
+Die Umsetzung ist in Rust geschrieben und verwendet die ''rand'', ''serde'' und ''ahash'' Pakete. Mehr zum letzteren Packet unter 2.2. Für Windows und arm64-Macos kompilierte Programme findet man in /bin
 
 \subsection{I/O}
 Die Eingabe und Ausgabe findet über die structs \textit{TInput} und \textit{TOutput} statt, die sich beide in ''io.rs'' befinden. 
-In dieser Datei sind auch die Obergrenzen für die Berechnung des Binomialkoeffizienten festgelegt: $N \leq 256$ und $k \leq 20$. 
+In dieser Datei sind auch die Obergrenzen für die Berechnung des Binomialkoeffizienten festgelegt: $N \leq 256$ und $k \leq 20$. Das heißt nicht, dass Eingaben mit $k>20$ nicht verarbeitet werden können!
 
 \subsection{Strukturen}
 Die Implementierung verwendet ausschließlich 128 Bit Zahlen als Darstellung der Schlüsselkarten, da keine der Beispielsangaben größere Zahlen verlangt und flexibel große Zahlen die Verarbeitung nicht entscheidend beschleunigen würden. Trotzdem enthält die Datei, ''structs.rs'', die verschiedene nützliche Strukturen enthält, auch eine sehr einfache Implementierung einer 256-Bit Zahl: \textit{u256}. Benutzt wird diese Zahl von dem struct \textit{Combination}. Dieses struct enthält für eine Kombination deren $xor$ Wert, sowie die Elemente der Kombination als 256-Bit Bitmaske. \textit{Combination} können mittels \textit{add} weitere Elemente hinzugefügt werden und mit \textit{combine} können zwei Objekte kombiniert werden. 
 
-Die Kombinationen werden in einer \textit{Hashmap<u128, u256>} gespeichert, welche die $xor$ Werte als Schlüssel hat und die Kombinationsmasken als Wert. Die Hashmap ist in hinter dem struct \textit{HashMapStore} versteckt welches über die Implementierung des folgenden Interfaces benutzt wird
-\begin{minted}{rust}
-pub trait CombStore : Clone {
-    fn new(size: usize) -> Self;
-    fn insert(&mut self, k: u128, v: u256);
-    fn get(&mut self, k: u128) -> Option<u256>;
-    fn clear(&mut self);
-}
-\end{minted}
+Die Kombinationen werden in einer \textit{Hashmap<u128, u256>} gespeichert, welche die $xor$ Werte als Schlüssel hat und die Kombinationsmasken als Wert. Die Hashmap ist in hinter dem struct \textit{HashMapStore} versteckt welches über die Implementierung des CombStore Interfaces benutzt wird.
 Statt Hashmaps könnten auch B-Bäume oder sortierte Arrays benutzt werden, aber diese haben sich als langsamer erwiesen. 
 
-Wenn die Zahlen nur 64-Bit hätten müsste man sie überhaupt nicht hashen und auch für 128-Bit Zahlen könnte man eine Hashfunktion benutzen, die sie nur Modulo $2^{64}$ nimmt. Die von dem ''ahash'' Paket bereitgestellte Hashfunktion ist leicht schneller als die gerade eben genante Methode, stellt aber ansonsten keine bedeutende Beschleunigung dar. 
+Wenn die Zahlen nur 64-Bits hätten, müsste man sie überhaupt nicht hashen und auch für 128-Bit Zahlen könnte man eine Hashfunktion benutzen, die sie nur Modulo $2^{64}$ nimmt. Die von dem ''ahash'' Paket bereitgestellte Hashfunktion ist leicht schneller als die gerade eben genante Methode, stellt aber ansonsten keine bedeutende Beschleunigung dar. 
 
 Um die effiziente Berechnung von dp Werte zu erlauben, enthält ''structs'' noch \textit{DPArray}, ein bis zu 3-dimensionales Array. Dieses wird zum Beispiel von \textit{BinomC}, einem struct aus ''math.rs'', welches den Binomialkoeffizienten berechnet, verwendet.
 
@@ -230,72 +242,59 @@ pub fn search_single_shift<T: CombStore>(nums: &[u128], segment: Segment, k: usi
     res
 }
 \end{minted}
-Die Funktionen \textit{split...simple} und \textit{assign...simple} teilen lediglich den vorgegeben Zahlenbereich in zwei Hälften auf. \textit{map\textunderscore combs\textunderscore adv} ruft eine zweite Funktion für alle Kombinationen der Länge k aufruft. Diese zweite Funktion ist für die eine Hälfte die Funktion, die die Kombination speichert \mint{rust}|store.insert(x.0, x.1);|und für die zweite Hälfte die Funktion \textit{it\textunderscore func}, die für die gegebene Kombination die entsprechende findet. \mint{rust}|store.get(compl)|
+Die Funktionen \textit{split...simple} und \textit{assign...simple} teilen lediglich den vorgegeben Zahlenbereich in zwei Hälften auf. \textit{map\textunderscore combs\textunderscore adv} ruft eine zweite Funktion für alle Kombinationen der Länge k auf. Diese zweite Funktion ist für die eine Hälfte die Funktion, die die Kombination speichert \mint{rust}|store.insert(x.0, x.1);|und für die zweite Hälfte die Funktion \textit{it\textunderscore func}, die für die gegebene Kombination die entsprechende findet. \mint{rust}|store.get(compl)|
 Nachdem eine gültige k-Kombination gefunden wurde werde die enthaltenen Zahlen mit \textit{combination\textunderscore nums} aus der Bitmaske gelesen.
 
-\subsubsection{Zu \textit{map\textunderscore combs\textunderscore adv}}
-Wie kann man möglichst effizient über alle Kombinationen iterieren? Die folgende Funktion bietet eine einfache Lösung:
-\begin{minted}[breaklines]{rust}
-pub fn map_combs_simple(nums: &[u128], k: usize, func: &mut dyn FnMut(&Combination), block: Segment, shift: usize, cur: Combination) {
-    assert!(block.1 <= nums.len());
-    if k == 0 {
-        func(&cur);
-        return;
-    }
-    if block.0==block.1 {return;}
-    for i in block.0..block.1 {
-        let num_idx = (i+shift) % nums.len();
-        map_combs_simple(nums, k-1, func, Segment(i+1, block.1), shift, cur.add(nums[num_idx], num_idx));
-    }
-}
-\end{minted}
-Die Funktion wird jedoch sehr ineffizient, wenn $k > \frac{n}{2}$. \textit{map\textunderscore combs\textunderscore adv} unterscheidet sich von der vorherigen Funktion darin, dass sie vor der Rekursion erst ''Präfixxors'' der Karten berechnet und dann, wenn $k > \frac{n}{2}$ denn übrigen Zahlenbereich in konstanter Zeit ''invertiert''. Statt Zahlen auszusuchen, die in der Kombination sind, werden dann Zahlen ausgesucht, die nicht in der Kombination sind. %BILD DER AUFRUFE
+\textit{map\textunderscore combs\textunderscore adv} implementiert die Idee von 1.7 zur effizienten Enumeration der Kombinationen.
 
 \subsection{Verifikation}
-Um sicherzustellen, dass die Implementierung nicht fehlerhaft ist, wird das Ergebnis mit \textit{TOutput.verify()} verifiziert. Zusätzlich sind in ''testing.rs'' Funktionen enthalten, die zufällige Eingaben generieren. Die Wahrscheinlichkeit, dass eine zufällige Eingabe eine gültige Kombination enthält kann geschätzt werden
+Um sicherzustellen, dass die Implementierung nicht fehlerhaft ist, wird das Ergebnis mit \textit{TOutput.verify()} verifiziert. Es kann jedoch nur ein positives Suchergebnis verifiziert werden. Findet die Suche keine Kombination, kann nicht verifiziert werden, dass es auch keine gibt. In ''testing.rs'' sind Funktionen enthalten, die zufällige Eingaben generieren und die Verarbeitung anhand dieser überprüfen. Die Wahrscheinlichkeit, dass eine zufällige Eingabe eine gültige Kombination enthält kann geschätzt werden
 \begin{equation}
 P = \binom{n}{k} \cdot (1-(\frac{2^{m}-1}{2^{m}})^{(n-k)})
 \end{equation}
-Da P in den meisten Fällen nahezu 0 ist, gibt es die Funktion \textit{generate\textunderscore solvable} die zufällige lösbare Eingaben generiert. 
+Da P in den meisten Fällen nahezu 0 ist, gibt es die Funktion \textit{generate\textunderscore solvable} die zufällige lösbare Eingaben generiert. Wenn die Suche dann keine Kombination findet, ist sie fehlerhaft.
 
 \section{Erweiterungen}
 
 \subsection{Verteilung des Rechenaufwands auf mehrere Computer}
-Obwohl das Programm dank Paralelisierung auch das schwerste Beispiel in weniger als einer halben Stunde lösen kann, gibt es immer noch Potential, den Lösungsvorgang zu beschleunigen. Die hier betrachtete Erweiterung ist ein einfaches Server-Client System, mit dem die Berechnung der verschiedenen Iteration auf mehrere Computer verteilt werden kann. % SCHEMA
-\\ Für den Http Server und die Http Anfragen wird das ''hyper'' Packet verwendet, welches wiederum die ''tokio'' Laufzeit benutzt. Die Implementation befindet sich jeweils in ''client.rs'' und ''server.rs''. Verbindet man zwei Computer mit je 4 Cores, kann so Beispiel 4 in ca. 10 Minuten gelöst werden.
+Obwohl das Programm dank Paralelisierung auch das schwerste Beispiel in weniger als einer halben Stunde lösen kann, gibt es immer noch Potential, den Lösungsvorgang zu beschleunigen. Die hier betrachtete Erweiterung ist ein einfaches Server-Client System, mit dem die Berechnung der verschiedenen Iteration auf mehrere Computer verteilt werden kann. So kann Beispiel 4 in ca. 10 Minuten gelöst werden. \\
+Diese Erweiterung ist in Erweiterung.pdf dokumentiert. 
 
 \subsection{Zusätzliche Implementierung des 1. Ansatzes}
-Ich habe den 1. Ansatz, sowie die in der Lösungsidee vorgestellten Optimierungen zuerst implementiert und habe erst später den 2. Ansatz gefunden. Um die aktuelle Implementierung lesbar zu halten, ist sie nicht mehr mit dem 1. Ansatz kompatibel, doch die Entwicklung der Implementierung und damit auch eine funktionierende Umsetzung des 1. Ansatzes findet man in ''BonusAufgabe\textunderscore old''. Die enthaltenen Dateien enthalten möglicherweise Fehler und sollten nicht kompiliert werden.
+Ich habe den 1. Ansatz, sowie die in der Lösungsidee vorgestellten Optimierungen zuerst implementiert und habe erst später den 2. Ansatz gefunden. Um die aktuelle Implementierung lesbar zu halten, ist sie nicht mehr mit dem 1. Ansatz kompatibel, doch die verschiedenen Phasen der Entwicklung der Implementierung und damit auch eine funktionierende Umsetzung des 1. Ansatzes findet man in ''old''. Die enthaltenen Dateien enthalten möglicherweise Fehler und sollten nicht kompiliert werden.
+
+\subsection{Alternative Operationen: $+ \text{ statt } \oplus$}
+Es wäre möglich das Programm so umzuschreiben, dass es andere kommutativ assoziative Operationen für die Gewinnung der Schlüsselkarte zulässt. Bei + zum Beispiel, müsste dann darauf geachtet werden, dass die Summe nicht zu groß wird, da sonst 128 Bit nicht mehr ausreichen. Die größten Änderungen gäbe es bei der Enumeration der Kombinationen. 
 
 \section{Beispiele}
 
 \textbf{Beispiel 0}\\
-\underline{Eingabe:}\textit{hexmax0.txt}\\
+\underline{Eingabe:}\textit{stapel0.txt}\\
 \underline{Ausgabe:}
 \VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe0.txt}
 
 \textbf{Beispiel 1}\\
-\underline{Eingabe:}\textit{hexmax1.txt}\\
+\underline{Eingabe:}\textit{stapel1.txt}\\
 \underline{Ausgabe:}
 \VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe1.txt}
 
 \textbf{Beispiel 2}\\
-\underline{Eingabe:}\textit{hexmax2.txt}\\
+\underline{Eingabe:}\textit{stapel2.txt}\\
 \underline{Ausgabe:}
 \inputminted[breaklines, breakanywhere]{text}{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe2.txt}
 
 \textbf{Beispiel 3}\\
-\underline{Eingabe:}\textit{hexmax3.txt}\\
+\underline{Eingabe:}\textit{stapel3.txt}\\
 \underline{Ausgabe:}
 \inputminted[breaklines, breakanywhere]{text}{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe3.txt}
 
 \textbf{Beispiel 4}\\
-\underline{Eingabe:}\textit{hexmax4.txt}\\
+\underline{Eingabe:}\textit{stapel4.txt}\\
 \underline{Ausgabe:}
 \inputminted[breaklines, breakanywhere]{text}{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe4.txt}
 
 \textbf{Beispiel 5}\\
-\underline{Eingabe:}\textit{hexmax5.txt}\\
+\underline{Eingabe:}\textit{stapel5.txt}\\
 \underline{Ausgabe:}
 \VerbatimInput{../Aufgaben/Bonusaufgabe/ausgaben/ausgabe5.txt}
 

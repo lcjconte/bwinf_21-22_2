@@ -1,3 +1,6 @@
+
+//This version introduces smarter partitioning
+
 #![allow(dead_code)]
 //use std::{collections::{HashMap}};
 use rustc_hash::FxHashMap;
@@ -7,7 +10,6 @@ use super::common::*;
 use super::ISolver;
 
 //[lo;hi)
-//This version introduces smarter partitioning
 pub struct Solver<'a> {
     t_input: Option<&'a TInput>,
     nums: Vec<u128>,

@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// Contains cost estimation functions
 #[derive(Clone)]
 pub struct CalcUnit {
-    nums: Vec<u128>, //In case efficient partition is introduced
+    nums: Vec<u128>, 
     binomc: BinomC,
     cost_dp: RefCell<DParray<(u128, bool)>>,
     pub cost_dp_params: Constraints, 
@@ -118,7 +118,7 @@ impl Solverv2 {
         let n = hi-lo;
         let sl = (n as f64/2.0).ceil() as usize;
         let sr = (n as f64/2.0).floor() as usize;
-        let blocks = split_segment_simple(segment);  //Wouldn't work with smart partition
+        let blocks = split_segment_simple(segment);  
         let mut res: SearchRes = None;
         for l in (if k >= sr {k-sr} else {0})..sl.min(k)+1 { 
             let r = k-l;

@@ -3,7 +3,7 @@ use std::fmt;
 use std::fs::File;
 use std::error::Error;
 use std::io::{BufReader, Read, BufRead};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use serde_json::Value;
 
 #[derive(Clone)]

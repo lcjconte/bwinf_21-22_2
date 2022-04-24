@@ -1,3 +1,4 @@
+/// Server binary | expects cmd args <input file name>
 use std::convert::Infallible;
 use std::env::args;
 use std::net::SocketAddr;
@@ -6,8 +7,7 @@ use Bonusaufgabe::conv;
 use Bonusaufgabe::io::*;
 use Bonusaufgabe::structs::SearchRes;
 use Bonusaufgabe::processing::combination_nums;
-use tokio::sync::{broadcast, mpsc, RwLock};
-use std::ops::Range;
+use tokio::sync::{broadcast, mpsc};
 use std::sync::{Arc, Mutex};
 use hyper::{Body, Request, Response, Server, Method, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
@@ -15,8 +15,8 @@ use hyper::service::{make_service_fn, service_fn};
 #[derive(Clone)]
 struct Stuff {
     input: Arc<TInput>,
-    shutdown_tx: broadcast::Sender<()>,
-    cursor: Arc<Mutex<Range<usize>>>,
+    cursor: Arc<Mutex<usize>>,
+    searched: Arc<Mutex<Vec<bool>>>,
     result_tx: mpsc::UnboundedSender<ShiftResult>,
 }
 
@@ -31,23 +31,26 @@ async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
 
     let (shutdown_tx, shutdown_rx) = broadcast::channel::<()>(100);
-    let s_points = 0..(((n as f64/2.0).floor()+1.0) as usize);
-    let mut res_out = s_points.len();
-    let cursor = Arc::new(Mutex::new(s_points));
+    let max_s = ((n as f64/2.0).floor()+1.0) as usize;
+    let mut res_out = max_s-1;//Outstanding results
+    let searched = Arc::new(Mutex::new(vec![false;res_out]));
+    let cursor = Arc::new(Mutex::new(0));
 
-    //Spawn result manager
     let (result_tx, mut result_rx) = mpsc::unbounded_channel::<ShiftResult>();
     let mut mshutdown_rx = shutdown_tx.subscribe();
     let mshutdown_tx = shutdown_tx.clone();
-    //let mremaining_shifts = remaining_shifts.clone();
+    let minput = input.clone();
+    let stuff = Stuff {input: minput, cursor, searched, result_tx};
+
+    let mstuff = stuff.clone();
     let result_handle: tokio::task::JoinHandle<SearchRes> = tokio::spawn(async move {   
         loop {
             tokio::select! {
                 res = result_rx.recv() => {
                     let res = res.unwrap();
                     res_out -= 1;
-                    //mremaining_shifts.write().await.rem
-                    match res.1 {
+                    mstuff.searched.lock().unwrap()[res.1 as usize] = true;
+                    match res.0 {
                         Some(c) => {
                             mshutdown_tx.send(()).ok();
                             return Some(c);
@@ -62,8 +65,6 @@ async fn main() {
             }
         }
     });
-    let minput = input.clone();
-    let stuff = Stuff {input: minput, shutdown_tx: shutdown_tx.clone(), cursor, result_tx};
     let make_svc = make_service_fn(move |_conn| {
         let stuff = stuff.clone();
         async move {
@@ -106,17 +107,28 @@ async fn serve_routes(mut _req: Request<Body>, stuff: Stuff) -> Result<Response<
             println!("Task input requested");
             *response.body_mut() = Body::from(serde_json::to_string(&(*input)).unwrap());
         },
-        (&Method::POST, "/get_assignment") => { //Does nothing with request!
-            println!("Got assignment request");
-            let cpos = stuff.cursor.lock().unwrap().next();
-            match cpos {
-                Some(s) => {
-                    *response.body_mut() = Body::from(serde_json::to_string(&ShiftAssignment(conv!(s))).unwrap());
+        (&Method::GET, "/get_assignment") => { //Does nothing with request!
+            println!("Assignment requested");
+            let searched = stuff.searched.lock().unwrap();
+            let mut cpos = stuff.cursor.lock().unwrap();
+
+            let mut checked = 0;
+            while checked <= searched.len() {
+                *cpos = (*cpos+1)%searched.len();
+                if !searched[*cpos] {
+                    break;
+                }
+                checked += 1;
+            }
+            match checked > searched.len() {
+                true => {*response.status_mut() = StatusCode::GONE;}
+                false => {
+                    *response.body_mut() = Body::from(serde_json::to_string(&ShiftAssignment(conv!(*cpos))).unwrap());
                 },
-                None => {*response.status_mut() = StatusCode::GONE;}
             }
         },
         (&Method::POST, "/assignment_result") => {
+            println!("Assignment result submitted");
             stuff.result_tx.send(get_json(_req.into_body()).await.unwrap()).ok();
         },
         _ => {

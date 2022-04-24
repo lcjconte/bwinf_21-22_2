@@ -1,3 +1,6 @@
+
+//This version introduces different CombStores and multithreading
+
 #![allow(dead_code)]
 use std::collections::{HashMap, BTreeMap};
 use std::sync::Arc;
@@ -11,7 +14,6 @@ use bit_vec::BitVec;
 use super::common::*;
 
 //[lo;hi)
-//This version introduces different CombStores and multithreading
 pub struct Solver<'a> {
     t_input: Option<&'a TInput>,
     nums: Vec<u128>,
