@@ -1,6 +1,6 @@
-import json
 import sys
-from time import sleep
+from math import log10
+import os, shutil
 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -48,28 +48,29 @@ import glob
 
 from PIL import Image
 
+if os.path.isdir("visu_frames"):
+    sys.exit(1)
+os.mkdir("visu_frames")
 # filepaths
-fp_in = "proto/Aufgabe3/frames/a*.png"
-fp_out = "proto/Aufgabe3/res.gif"
+fp_in = "visu_frames/a*.png"
+fp_out = "res.gif"
 
-char_path = sys.argv[1]
-with open(char_path, "r") as cfile:
-    chars = json.load(cfile)
-input_path = sys.argv[2]
+input_path = sys.argv[1]
 with open(input_path, "r") as fin:
     lin = fin.readlines()
 w = len(lin[0].strip())
 digits = [Digit((0.75*i, 0), 0.1) for i in range(w)]
 plt.axis([0, 0.75*w, 0, 0.75*w])
+max_idx = len(lin)-2-1
 for t, li in enumerate(lin[2:]):
     items = li.split(" ")[4:]
     for i, el in enumerate(items):
         digits[i].draw(int(el))
-    plt.savefig(f"frames/a{t}.png")
+    plt.savefig(f"visu_frames/a{str(t).zfill(int(log10(max_idx)+1))}.png")
     for i in digits:
         i.clear()
 imgs = (Image.open(f) for f in sorted(glob.glob(fp_in)))
 img = next(imgs)  # extract first image from iterator
 img.save(fp=fp_out, format='GIF', append_images=imgs,
          save_all=True, duration=1000, loop=0)
-
+shutil.rmtree("visu_frames")

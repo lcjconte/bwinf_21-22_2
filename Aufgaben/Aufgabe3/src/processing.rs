@@ -98,8 +98,8 @@ struct Context<'a> {
 }
 impl<'a> Context<'a> {
     fn get_dp(&mut self, k: usize, bal: i64) -> &mut f64 {
-        let balsize = self.s.len()*self.chars.positions as usize;
-        &mut self.dp[2*k*balsize+bal as usize+balsize] 
+        let balsize = self.s.len() as i64*self.chars.positions;
+        &mut self.dp[(2*k as i64*balsize+bal) as usize+balsize as usize] 
     }
 }
 

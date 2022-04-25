@@ -4,7 +4,7 @@ use rand::thread_rng;
 use rand::Rng;
 use std::fs;
 
-fn generate_testcase(n: usize) -> TInput {
+pub fn generate_testcase(n: usize) -> TInput {
     let chars = vec!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'];
     let mut s: Vec<char> = vec!['0'; n];
     for i in 0..n {
@@ -17,7 +17,7 @@ pub fn run_samples() {
     let chars = Characters::read_from("eingaben/chars.json").unwrap();
     for i in 0..6 {
         println!("Running hexmax{}.txt", i);
-        let input = TInput::read_from(&format!("eingaben/Aufgabe3/hexmax{}.txt", i)).unwrap();
+        let input = TInput::read_from(&format!("eingaben/hexmax{}.txt", i)).unwrap();
         let output = process(&input, &chars, i < 3);
         assert!(output.verify(&chars));
         println!("Took {}ms", output.runtime);
@@ -26,7 +26,7 @@ pub fn run_samples() {
 }
 
 pub fn run_randomized(r: usize, maxn: usize, save_runtimes: bool) {
-    let chars = Characters::read_from("chars.json").unwrap();
+    let chars = Characters::read_from("eingaben/chars.json").unwrap();
     let mut times: Vec<(usize, u128)> = vec![];
     for _ in 0..r {
         let input = generate_testcase(thread_rng().gen_range(1..maxn+1));

@@ -26,6 +26,13 @@ impl TInput {
         Ok(obj)
     }
 }
+impl fmt::Display for TInput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{}", self.s)?;
+        write!(f, "{}", self.m)?;
+        Ok(())
+    }
+}
 /// Single segment movement
 pub struct Step {
     /// (character idx, segment idx) Set character idx to u32::MAX to -1

@@ -9,5 +9,6 @@ fn main() {
     let mmultiplier: usize = env::args().nth(3).unwrap().parse().unwrap();
     let input = TInput::read_from(filepath.as_str()).unwrap();
     let output = process(&input, &Constraints::new(mmultiplier*1e7 as usize, jcount));
-    println!("{}", output.as_ref().unwrap());
+    println!("{}", output.as_ref().expect("Solution not found!"));
+    assert!(output.unwrap().verify());
 }
