@@ -8,7 +8,7 @@ use std::fs;
 
 fn main() {
     let file_name = env::args().nth(1).unwrap();
-    let chars = Characters::read_from("eingaben/chars_binary.json").unwrap();
+    let chars = Characters::read_from("eingaben/chars.json").unwrap();
     let input = TInput::read_from(file_name).unwrap();
     let output = process(&input, &chars, false);
     println!("{}", output);

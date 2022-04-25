@@ -49,7 +49,11 @@ async fn main() {
                 res = result_rx.recv() => {
                     let res = res.unwrap();
                     res_out -= 1;
-                    mstuff.searched.lock().unwrap()[res.1 as usize] = true;
+                    let mut searched = mstuff.searched.lock().unwrap();
+                    if !searched[res.1 as usize] {
+                        res_out -= 1;
+                        searched[res.1 as usize] = true;
+                    }
                     match res.0 {
                         Some(c) => {
                             mshutdown_tx.send(()).ok();

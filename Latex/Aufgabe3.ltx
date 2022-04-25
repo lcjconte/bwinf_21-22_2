@@ -61,7 +61,7 @@ Gegeben ist ein String $\alpha$ aus $N$ Hexadezimalziffern, wobei jeder Ziffer e
 Der Lösungsidee beruht auf folgender Abstraktion des String-Umformungsvorgangs:
 
 \subsection{Wie man sich die schrittweise Umformung des Strings vorstellen kann}
-Um eine Ziffer in eine andere zu transformieren müssen Segmente umgelegt werden. Dabei gibt es für zwei Ziffern x und y, Segmente, die in x sind, wo sie in y nicht mehr sein dürfen, und Segmente, die in y sind, ohne in x zu sein.\\
+Um eine Ziffer in eine andere zu transformieren, müssen Segmente umgelegt werden. Dabei gibt es für zwei Ziffern x und y, Segmente, die in x sind, wo sie in y nicht mehr sein dürfen, und Segmente, die in y sind, ohne in x zu sein.\\
 \begin{gather*}
 b_{x\rar y} := (\text{Anzahl der Segmentpositionen, die nur in x belegt sind}, \\ \text{Anzahl der Segmentpositionen, die nur in y belegt sind}) \\
 \implies b_{B\rar D} = (1, 1)
@@ -75,8 +75,8 @@ Die erste Transformation muss zwei Segmente nach außen abgeben. Sie kann trotzd
 Man kann sich für einen String $\gamma$ während des Transformationsvorgangs eine zusäzliche Information g, das Gleichgewicht des Strings, bzw. die Differenz an Segmenten zum Originalstring, vorstellen. Dieses ist anfänglich 0, wird jedoch von Transformationen verändert. Was das heißen soll kann man am Beispiel erkennen:
 \begin{align*}
 \gamma =  ``2F`` \quad  g = 0\\
-\xrightarrow{2 \rar C} \gamma = ``CF`` \quad g = 2\\
-\xrightarrow{F \rar 0} \gamma = ``C0`` \quad g = 0 
+\xrightarrow[\Delta g=2]{2 \rar C} \gamma = ``CF`` \quad g = 2\\
+\xrightarrow[\Delta g=-2]{F \rar 0} \gamma = ``C0`` \quad g = 0 
 \end{align*}
 Solange das vorgestellte Gleichgewicht nicht null ist, ist der String ungültig, da er teilweise aus nichtexistenten Segmenten besteht, oder Segmente ins Nichts abgelegt wurden.
 Eine Transformation $x \rar y$ beeinflusst das Gleichgewicht des Systems folgendermaßen:
@@ -84,20 +84,20 @@ Eine Transformation $x \rar y$ beeinflusst das Gleichgewicht des Systems folgend
 b_{x \rar y} = (w, z) \implies g_{x \rar y} = w-z
 \end{equation*}
 Man kann sich g als Ablage vorstellen, die positiv ist, wenn der String weniger Segmente als zuvor besitzt. \\
-Kann man einer Transformationen Umlegungskosten zuweisen? Die Transformation $x \rar y$ kostet zuerst einmal die inneren Kosten, also $\min{(w, z)}$. Die Umlegungen, die in ''Zusammenarbeit'' mit einer anderen Transformation stattfindeen, werden nur halb gezählt, da sie eben bei beiden Transformationen betrachtet werden. Für die Kosten gilt also: 
+Kann man einer Transformationen Umlegungskosten zuweisen? Die Transformation $x \rar y$ kostet zuerst einmal die inneren Kosten, also $\min{(w, z)}$. Die Umlegungen, die in ''Zusammenarbeit'' mit einer anderen Transformation stattfinden, werden nur halb gezählt, da sie eben bei beiden Transformationen betrachtet werden. Für die Kosten gilt also: 
 \begin{equation*}
 k_{x \rar y} = \min{(w, z)}+\frac{1}{2}\abs{w-z} \quad \text{(Immer mit $(w, z) = b_{x \rar y})$}
 \end{equation*}
 Es muss an dieser Stelle hinzugefügt werden, dass das gerade erklärte System mit den Transformationen, der vorgestellten ''Segmentbank'' und den rationalen Kosten, nicht beschreibt wie am Schluss die Segmente tatsächlich umgelegt werden. Es wird nur im Verfahren den Ergebnisstring zu finden benötigt. \\
 Damit ein String nach mehrern Transformationen, die dazu führen, dass $g=0 \land k \leq M$, auch im Sinne der Aufgabenstellung gültig ist muss noch folgendes gezeigt werden.
 
-\subsection{Weshalb eine Ziffer nie komplett leer ist}
+\subsection{Umformung des Strings}
 Wird ein String in einen String mit gleicher Anzahl an Segmenten umgeformt, dann ist diese Umformung möglich, ohne dass je eine Ziffer komplett leer ist. Folgende Umlegungsstrategie sorgt dafür: \\
 In einem ersten Durchgang merkt man sich alle Segmentpositionen die verändert werden müssen, dann verändert man alle gegensätzlichen Paare, also entfernen - hinzufügen, die in der gleichen Ziffer liegen. Nun ist immernoch keine Ziffer leer. Dann löst man alle anderen Paare auf, wobei auch hier eine Ziffer nie leer wird, da die bei der internen Auflösung bewegten Segmente an ihren Positionen bleiben, und die Segmente die überhaupt nicht bewegt werden müssen auch belegt bleiben. 
 
 \subsection{Finden der größten Hexzahl}
-Der Lösungsstring wird Ziffer für Ziffer zusammengesetzt. Damit der resultierende String so groß wie möglich ist werden in absteigender Reihenfolge die möglichen bedeutendsten Ziffern getestet. Der allererste Schritt für $\alpha=``D24``$ ist also zu bestimmen, was die minimalen Kosten für $``D24`` \rar ``F--``$ sind. Der Suffix ist unbestimmt, da seine lexikographische Größe weniger wichtig als die der bedeutendsten Stelle ist. $D \rar F$ resultiert in g = 1 für den Suffix. Dieser Suffix muss also ausgehend von g=1 ''balanciert'' werden, also mit minimalen Kosten so umgeformt werden, dass g zu 0 wird. Die minimalen Kosten für die balancierung des Suffixes seien $f(i, g)$ wobei i die bedeutendste Stelle des Suffixes ist und g das Ungleichgewicht. Wenn $k_{D \rar F} + f(1, 1) \leq M$ wäre, könnte man jetzt die 0. Stelle der Lösung auf F festlegen, doch im Beispiel ist das nicht der Fall. Also geht man weiter zu Umformung in die nächstkleinere Ziffer E und so weiter. Hat man die bedeutendste Ziffer bestimmt, geht man zu nächstbedeutendsten über.\\
-Zusammengefasst wird die Lösung also Ziffer für Ziffer, beginnend bei der bedeutendsten Stelle, zusammengesetzt. Ausgehend von den Kosten für die bisherigen Transformationen und dem aus diesen resultierten Ungleichgewicht, wird die aktuelle Stelle in die größtmöglichste Ziffer transformiert. Dass die Kosten am Schluss nicht M übersteigen und dass der resultierende String gleich viele Segmente wie das Original enthält, wird von f garantiert. Da jedesmal die größtemöglichste Ziffer gewählt wird, ist auch das Ergebnis maximal.
+Der Lösungsstring wird Ziffer für Ziffer zusammengesetzt. Damit der resultierende String so groß wie möglich ist werden in absteigender Reihenfolge die möglichen bedeutendsten Ziffern getestet. Der allererste Schritt für $\alpha=``D24``$ ist also zu bestimmen, was die minimalen Kosten für $``D24`` \rar ``F--``$ sind. Der Suffix ist unbestimmt, da seine lexikographische Größe weniger wichtig als die der bedeutendsten Stelle ist. $D \rar F$ resultiert in g = 1 für den Suffix. Dieser Suffix muss also ausgehend von g=1 ''balanciert'' werden, also mit minimalen Kosten so umgeformt werden, dass g zu 0 wird. Die minimalen Kosten für die Balancierung des Suffixes seien $f(i, g)$, wobei i die bedeutendste Stelle des Suffixes ist und g das Ungleichgewicht. Wenn $k_{D \rar F} + f(1, 1) \leq M$ wäre, könnte man jetzt die 0. Stelle der Lösung auf F festlegen, doch im Beispiel ist das nicht der Fall. Also geht man weiter zu Umformung in die nächstkleinere Ziffer E und so weiter. Hat man die bedeutendste Ziffer bestimmt, geht man zur nächstbedeutendsten Stelle über.\\
+Zusammengefasst wird die Lösung also Ziffer für Ziffer, beginnend bei der bedeutendsten Stelle, zusammengesetzt. Ausgehend von den Kosten für die bisherigen Transformationen und dem aus diesen resultierten Ungleichgewicht, wird die aktuelle Stelle in die größtmöglichste Ziffer transformiert. Dass die Kosten am Schluss nicht M übersteigen und dass der resultierende String gleich viele Segmente wie das Original enthält, wird von f garantiert. Da jedesmal die größtmöglichste Ziffer gewählt wird, ist auch das Ergebnis maximal.
 
 \subsection{f(i, g)}
 \begin{gather*}
@@ -112,10 +112,11 @@ f versucht an jeder Stelle alle möglichen Ziffern einzusetzen, un gibt dann die
 
 \subsection{Zusammenfassung und Laufzeit}
 Für den gesamten Algorithmus ergibt sich somit für das Finden des Lösungsstrings die Laufzeit $O(N \cdot \abs{Z} + N^2 \cdot \abs{Z})$, da die Werte von f gespeichert werden. Für die Hexadezimalziffern ist die Laufzeit also $O(N^2)$.
-Hat man einmal den Lösungsstring kann man mit der in 1.3 vorgestellten Strategie in linearer Laufzeit die Umlegungsschritte berechnen. %BILD EINFÜGEN!
+Hat man einmal den Lösungsstring kann man mit der in 1.3 vorgestellten Strategie in linearer Laufzeit die Umlegungsschritte berechnen. 
 
 \section{Umsetzung}
-Die Umsetzung ist in Rust geschrieben und beinhaltet die ''serde\underbar json'' und ''rand'' Pakete. Für Windows und arm64-Macos kompilierte Programme findet man in /bin
+Die Umsetzung ist in Rust geschrieben und verwendet die ''serde\underbar json'' und ''rand'' Pakete. Für Windows und arm64-Macos kompilierte Programme findet man in /bin
+
 \subsection{I/O}
 Eingabe und Ausgabe Funktionen sind in ''io.rs'' enthalten. Die structs \textit{TInput} und \textit{TOutput} handhaben das Einlesen der Problemstellungen und die Ausgabe der Lösungen. Um verschiedene Ziffersysteme zu erlauben, liest der \emph{Characters} struct die Informationen zu den verfügbaren Ziffern aus einer json Datei. Die ''chars.json'' Datei enthält das verwendete Hexadezimalsystem. In der Datei wird jeder Ziffer ein Bitstring zugewiesen, der die Segmente beschreibt. Während der Verarbeitung werden Objekte der \emph{Character} Klasse verwendet. Diese werden auch von \emph{Characters} bereitgestellt. 
 
@@ -165,11 +166,11 @@ Um die Umlegungen zu visualisieren gibt es ein Python script: visu.py. Mit diese
 \section{Erweiterungen}
 
 \subsection{Verschiedene Ziffersysteme}
-Wenn man die chars.json Datei verändert, kann das Programm auch andere Ziffersysteme, also zum Beispiel Ziffern mit mehr als 7 Segmenten verarbeiten.
+Wenn man die chars.json Datei verändert, kann das Programm auch andere Ziffersysteme, also zum Beispiel Ziffern mit mehr als 7 Segmenten verarbeiten. Beispiel 7 zeigt ein alternatives Ziffernsystem
 
 
 \section{Beispiele}
-
+Zum Verarbeiten: <exe> <Pfad von Eingabedatei>\\
 \textbf{Beispiel 0}\\
 \underline{Eingabe:}\textit{hexmax0.txt}\\
 \underline{Ausgabe:}

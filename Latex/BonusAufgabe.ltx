@@ -69,15 +69,15 @@ Man kann also die Sicherungskarte nicht von den Karten unterscheiden, aus denen 
 Es seien:
 \[ Z := \text{Indizes in } [0;N) \]
 \[\text{Für eine Indexmenge z: } xor(z) := \bigoplus_{x \in z}{a_x}\]
-Es ist also die Zahlenmenge $I$ gesucht, für die gilt $\abs{I}=k$ und  $xor(I) = 0$
+Es ist also die Zahlenmenge $I$ gesucht, für die gilt $\abs{I}=k$ und  $xor(I) = 0$.
 Das Verfahren zum Finden der Menge I wird abgesehen vom nächsten Block im Rest der Dokumentation erklärt.
 
 \subsection{Problem b)}
 Hat man einmal die Menge I und damit die Schlüssel sowie die Sicherungskarte gefunden, stellt sich die Frage, wie Zara ein Haus ohne mehr als zwei Fehlversuche zu benötigen aufsperren kann. \\
-Dies ist möglich, da die Codewörter aufsteigend sortiert sind. Das einzige Problem ist, dass die Sicherungskarte aufgrund von (1) nicht von den Schlüsseln unterscheidbar ist. Um ein Haus i aufzusperren muss Zara zuerst die i-te der sortierten Karten verwenden. Falls diese nicht passt weiß sie, dass die Sicherungs-Karte im Bereich [0;i) liegt und deshalb alle Indizes ab der Sicherungskarte um eins größer sind als sie seien sollten. Die gesuchte Karte ist dann die (i+1)-te
+Dies ist möglich, da die Codewörter aufsteigend sortiert sind. Das einzige Problem ist, dass die Sicherungskarte aufgrund von (1) nicht von den Schlüsseln unterscheidbar ist. Um ein Haus i aufzusperren muss Zara zuerst die i-te der sortierten Karten verwenden. Falls diese nicht passt weiß sie, dass die Sicherungs-Karte im Bereich [0;i) liegt und deshalb alle Indizes ab der Sicherungskarte um eins größer sind, als sie seien sollten. Die gesuchte Karte ist dann die (i+1)-te
 
 \subsection{Naive Ansätze}
-Das Problem besitzt eine gewisse Ähnlichkeit zum Subset-sum Problem für eine feste Anzahl an Summanden, einziger Unterschied ist, dass bei diesem Problem $\oplus$ statt $+$ verwendet wird. Eine DP-Lösung, wie sie beim Subset sum Problem für kleine Summen möglich wäre kann hier nicht verwendet werden, da die Zahlen im Bereich $[0, 2^{128})$ liegen. \\
+Das Problem besitzt eine gewisse Ähnlichkeit zum Subset-sum Problem für eine feste Anzahl an Summanden, einziger Unterschied ist, dass bei diesem Problem $\oplus$ statt $+$ verwendet wird. Eine DP-Lösung, wie sie beim Subset sum Problem für kleine Summen möglich wäre, kann hier nicht verwendet werden, da die Zahlen im Bereich $[0, 2^{128})$ liegen. \\
 Ein anderer möglicher Ansatz wäre alle k-Kombinationen an Indizes in [0;N) auszuprobieren, doch für N=111 und k=11 gibt es 
 $\binom{N}{k}\approx 4.7 \cdot 10^{14}$ viele Möglichkeiten. Diese alle einzeln auszuprobieren würde zu lange dauern. Der Ansatz alle Kombinationen zu durchsuchen kann jedoch durch einige Beobachtungen beschleunigt werden.
 
@@ -91,27 +91,25 @@ xor(K_1) \oplus xor(K_2) = 0  \\
 \end{align*}
 Anstatt für alle $\binom{N/2}{l}$ möglichen $K_1$ jeweils alle $\binom{N/2}{r}$ möglichen $K_2$ auszuprobieren \\(Laufzeit: $O(\binom{N/2}{l} \cdot \binom{N/2}{r})$,
 können alle $\binom{N/2}{r}$ möglichen $K_2$ in einer Hashtabelle gespeichert werden, wo sie mit $xor(K_2)$ als Schlüssel in konstanter Zeit gefunden werden können (Laufzeit: $O(\binom{N/2}{l} + \binom{N/2}{r})$. \\Für r=5 müssen nur $\binom{55}{5} \approx 3.5 \cdot 10^6$ viele Werte gespeichert werden.  \\
-Das Problem ist nun aber, dass l und r nicht bekannt sind. Zur Lösung gibt es zwei Ansätze
+Das Problem ist nun aber, dass l und r nicht bekannt sind. Zur Lösung gibt es zwei Ansätze. (Nur der zweite wird benutzt!)
 
 \subsection{Ansatz 1: Alle möglichen Paare l, r ausprobieren}
-Da es für k=11 nur 11 mögliche Paare (l, r) gibt wäre es denkbar all diese Paare auszuprobieren. Eine Hürde stellen die Extremfälle dar, in denen zum Beispiel r=11 ist. Dann gibt es nämlich $\binom{55}{11} \approx 1.2 \cdot 10^{11}$ Kombinationen rechts. Zwei Optimierungen werden benötigt: 
+Da es für k=11 nur 11 mögliche Paare (l, r) gibt, wäre es denkbar all diese Paare auszuprobieren. Eine Hürde stellen die Extremfälle dar, in denen zum Beispiel r=11 ist. Dann gibt es nämlich $\binom{55}{11} \approx 1.2 \cdot 10^{11}$ Kombinationen rechts. Zwei Optimierungen werden benötigt: 
 
 \subsubsection{Kostenschätzfunktion und Rekursion}
- Falls die Anzahl an Kombinationen für ein (l, r) zu groß ist um komplett durchgegangen zu werden, soll der Suchalgorithmus für jede Kombination der geringeren Hälfte rekursiv auf die größere Hälfte angewandt werden. Das heißt, dass im Falle l=0  der Vorgang also einmal rekursiv auf die rechte Hälfte angewandt wird. Dabei muss beachtet werden, dass für eine Teilsuche $xor(K_1) \oplus xor(K_2) = s$ und s nicht immer 0 ist.
+Falls die Anzahl an Kombinationen für ein (l, r) zu groß ist um komplett durchgegangen zu werden, soll der Suchalgorithmus für jede Kombination der geringeren Hälfte rekursiv auf die größere Hälfte angewandt werden. Das heißt, dass im Falle l=0  der Vorgang also einmal rekursiv auf die rechte Hälfte angewandt wird. Dabei muss beachtet werden, dass für eine Teilsuche $xor(K_1) \oplus xor(K_2) = s$ und s nicht immer 0 ist. 
 
-Um zu wissen wann es für ein für eine Bereichsgröße n und ein Paar l, r besser ist die Suche sofort mittels Hashtable auszuführen oder stattdessen mit erneuter Rekursion die Suche zu beschleunigen, werden die Funktionen $es(n, k)$, die Anzahl der benötigten Schritte für eine Problemstellung mit n Zahlen und k gesuchten Indizes und $si(n, l, r)$, die Anzahl der benötigten Schritte für ein bestimmtes $(l, r)$, benötigt.
+Um zu wissen wann es für ein für eine Bereichsgröße n und ein Paar l, r besser ist die Suche sofort mittels Hashtable auszuführen oder stattdessen mit erneuter Rekursion die Suche zu beschleunigen, werden die Funktionen $es(n, k)$, die Anzahl der benötigten Schritte für eine Problemstellung mit n Zahlen und k gesuchten Indizes und $si(n, l, r)$, die ungefähre Anzahl der benötigten Schritte für ein bestimmtes $(l, r)$, benötigt.
 \begin{gather*}
 es(n, k) = \sum_{(l, r)}{si(n, l, r)}\\
-si(n, l, r) = \min{(\binom{n/2}{l}^\Sigma + \binom{n/2}{r}^\Sigma, \quad \binom{n/2}{l}^\Sigma \cdot es(\frac{n}{2}, r))} \quad \text{, wobei }\binom{n}{k}^\Sigma = \sum_{j=1}^{k} \binom{n}{j} \text{ und } k \leq \frac{n}{2}
+si(n, l, r) = \min{(\binom{n/2}{l} + \binom{n/2}{r}, \quad \binom{n/2}{l} \cdot es(\frac{n}{2}, r))}
 \end{gather*}
 $si$ soll minimiert werden. In der oben gezeigten Formel ist das 1. Argument von $\min$ die Schrittzahl für eine ''lokale'' Suche und das 2. Argument die Schrittzahl der Rekursion. Um $es$ während der Verarbeitung effizient zu berechnen werden die Ergebnisse gespeichert, was in einer Laufzeit $O(N^2)$ (für $es$) resultiert. 
-
-$\binom{n}{k}^\Sigma$ ist eine Approximation für die zur Enumeration aller Kombinationen benötigte Schrittzahl für "kleine" k's. In 1.7 wird eine effizientere Methode gezeigt.
 
 \subsubsection{Halbierung der Menge an auszuprobierenden (l, r) Paaren}
 Wenn die Zahlen vor der Verarbeitung sortiert werden, kann man sie statt exakt in der Hälfte, beim Übergang des bedeutendsten Bits teilen. So kann man bestimmte (l,r) Paare ausschließen, da für keine ungerade Kombination von Zahlen z, die alle an Stelle x ein gesetztes Bit haben, $xor(z) = 0$ gilt.
 \\ \\
-Der gerade genannte Ansatz ist in der Praxis mit bestimmten Optimierungen schnell genug um das Beispiel 2 mit N=111 und k=11 in ca. 13 Minuten zu lösen. Jedoch ist er zu langsam für die größeren Beispiele und schwer zu parallelisieren.
+Der gerade genannte 1. Ansatz ist in der Praxis mit bestimmten Optimierungen schnell genug um das Beispiel 2 mit N=111 und k=11 in ca. 13 Minuten zu lösen. Jedoch ist er zu langsam für die größeren Beispiele und schwer zu parallelisieren.
 
 \subsection{Ansatz 2: Verschieben der Hälften}
 Es sind die Paare (l, r) am aufwendigsten, bei denen l und r weit auseinander liegen: 
@@ -197,10 +195,10 @@ def durchsuche_kombinationen(k: usize, lo, hi, kombination) {
     \includegraphics[width=0.35\textwidth]{enum_combs}
 \end{wrapfigure}
 
-Diese Funktion wird jedoch ineffizient, wenn $k > \frac{n}{2}$. Die Funktion kann in diesem Fällen beschleunigt werden, wenn statt Zahlen zur Kombination hinzuzufügen, zuerst alle übrigen hinzugefügt werden und dann $n-k$ entfernt werden. Um den übrigen Bereich schnell hinzufügen zu können, werden vor der Verarbeitung ''Präfixxors'' berechnet, die eine ''Invertierung'' des übrigen Bereichs in konstanter Zeit ermöglichen, wodurch k zu $n-k$ wird. Dieses neue Verfahren benötigt weniger rekursive Aufrufe, wie man in der Graphik sehen kann. 
+Diese Funktion wird jedoch ineffizient, wenn $k > \frac{n}{2}$, da ihre Laufzeit $O(\sum_{j=1}^{k} \binom{n}{j})$ ist. Die Funktion kann in diesem Fällen beschleunigt werden, wenn statt Zahlen zur Kombination hinzuzufügen, zuerst alle übrigen hinzugefügt werden und dann $n-k$ entfernt werden. Um den übrigen Bereich schnell hinzufügen zu können, werden vor der Verarbeitung ''Präfixxors'' berechnet, die eine ''Invertierung'' des übrigen Bereichs in konstanter Zeit ermöglichen, wodurch k zu $n-k$ wird. Dieses neue Verfahren benötigt weniger rekursive Aufrufe, wie man in der Graphik sehen kann. 
 
 \subsection{Das komplette Verfahren}
-Die Laufzeit des Algorithmus ist also ungefähr $O(N \cdot \binom{N/2}{k/2})$, wobei die Laufzeit des Enumerationsverfahrens nur geschätzt ist, aber auf jeden Fall $<O(\binom{N/2}{k/2}^\Sigma)$ ist.
+Die Laufzeit des Algorithmus ist also ungefähr $O(N \cdot \binom{N/2}{k/2})$, wobei die Laufzeit des Enumerationsverfahrens nur geschätzt ist, aber auf jeden Fall $<O(\sum_{j=1}^{k} \binom{n}{j}))$ ist.
 Der zweite Ansatz kann gut parallelisiert werden und ist somit in der Lage alle Beispiel einigermaßen schnell zu lösen. Je größer die Eingabe wird, desto größer wird auch die Größe der verwendeten Hashtabellen und benötigten Rams. 16 GB reichen aus um für Beispiel4 4 Kerne parallel zu verwenden und das Beispiel in weniger als einer halben Stunde zu lösen. Es wäre denkbar für noch größere Eingaben Ansatz 1 und 2 zu kombinieren, um den Speicherbedarf unter Kontrolle zu behalten.
 
 \section{Umsetzung}
@@ -271,7 +269,7 @@ Ich habe den 1. Ansatz, sowie die in der Lösungsidee vorgestellten Optimierunge
 Es wäre möglich das Programm so umzuschreiben, dass es andere kommutativ assoziative Operationen für die Gewinnung der Schlüsselkarte zulässt. Bei + zum Beispiel, müsste dann darauf geachtet werden, dass die Summe nicht zu groß wird, da sonst 128 Bit nicht mehr ausreichen. Die größten Änderungen gäbe es bei der Enumeration der Kombinationen. 
 
 \section{Beispiele}
-
+Zum Verarbeiten: <exe> <Eingabedatei> <Maximale Anzahl paralleler Threads> <Maximal gleichzeitig gespeicherte Kombinationen/$10^7$>\\
 \textbf{Beispiel 0}\\
 \underline{Eingabe:}\textit{stapel0.txt}\\
 \underline{Ausgabe:}
